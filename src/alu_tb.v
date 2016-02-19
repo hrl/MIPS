@@ -1,7 +1,7 @@
 `include "alu.v"
 
 module alu_tb;
-    reg [4:0] op;
+    reg [3:0] op;
     reg [31:0] a;
     reg [31:0] b;
     wire [31:0] result;
