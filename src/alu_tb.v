@@ -29,7 +29,7 @@ module alu_tb;
         cont = 1;
         while(cont) begin
             cont = $fgets(str, fd);
-            if(str[0] != "#") begin
+            if((str >> ((cont-1)*8)) != "#") begin
                 dummy = $sscanf(str, "%x %x %x %x %b", op, a, b, result_e, zero_e);
                 @(posedge clk);
                 if(result_e != result || zero_e != zero) begin
