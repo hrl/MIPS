@@ -13,7 +13,7 @@ module alu_tb;
     reg [31:0] result_e;
     reg zero_e;
     integer fd, cont, dummy, error_count;
-    reg [0:32*8-1] str;
+    reg [32*8-1:0] str;
     
     alu alu(.op(op), .a(a), .b(b), .result(result), .zero(zero));
 
