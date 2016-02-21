@@ -1,6 +1,7 @@
 `ifndef _defines
 `define _defines
 
+//// ALU
 // ALU OP
 `define ALU_OP_ADD  4'b0000 // 0
 `define ALU_OP_SUB  4'b0001 // 1
