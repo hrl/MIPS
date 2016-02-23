@@ -1,6 +1,9 @@
 `ifndef _defines
 `define _defines
 
+//// DEBUG
+`define _DEBUG_MODE
+
 //// INSTRUCTION SET
 // RAW INS
 `define INS_RAW_OPCODE 31:26
