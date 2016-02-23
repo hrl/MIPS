@@ -6,7 +6,7 @@
 module pc_tb;
     reg clk;
     reg clr;
-    reg [1:0] pc_inc_type;
+    reg [1:0] pc_inc;
     reg alu_branch_result;
     reg [31:0] abs_addr;
     reg [31:0] branch_addr;
@@ -24,7 +24,7 @@ module pc_tb;
         .clk(clk),
         .clr(clr),
         .last_pc(last_pc),
-        .pc_inc_type(pc_inc_type),
+        .pc_inc(pc_inc),
         .alu_branch_result(alu_branch_result),
         .abs_addr(abs_addr),
         .branch_addr(branch_addr),
@@ -43,7 +43,7 @@ module pc_tb;
             cont = $fgets(str, fd);
             if((str >> ((cont-1)*8)) != "#" && cont) begin
                 @(posedge clk);
-                dummy = $sscanf(str, "%b %x %b %x %x %x", clr, pc_inc_type, alu_branch_result, abs_addr, branch_addr, current_pc_e);
+                dummy = $sscanf(str, "%b %x %b %x %x %x", clr, pc_inc, alu_branch_result, abs_addr, branch_addr, current_pc_e);
                 #1;
                 if(current_pc_e != current_pc) begin
                     error_count = error_count + 1;

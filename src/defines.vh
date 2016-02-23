@@ -62,7 +62,7 @@
 // PARSED INS
 `define CON_LSB               0
 `define CON_IMME_EXT        0:0
-`define CON_PC_INC_TYPE     2:1
+`define CON_PC_INC          2:1
 `define CON_REG_WRITE_EN    3:3
 `define CON_REG_WRITE_DATA  5:4
 `define CON_REG_WRITE_NUM   7:6
@@ -87,10 +87,10 @@
 `define MEM_RD_READ  1'b1
 
 //// PC
-`define PC_ADDR_NORMAL 2'b00
-`define PC_ADDR_BRANCH 2'b01
-`define PC_ADDR_JUMP   2'b10
-`define PC_ADDR_UNUSED 2'b11
+`define PC_INC_NORMAL 2'b00
+`define PC_INC_BRANCH 2'b01
+`define PC_INC_JUMP   2'b10
+`define PC_INC_UNUSED 2'b11
 
 //// REG
 `define REG_READ1_NUM_RT 1'b0
@@ -103,6 +103,8 @@
 `define REG_WRITE_DATA_ALU 2'b00
 `define REG_WRITE_DATA_DM  2'b01
 `define REG_WRITE_DATA_PC  2'b10
+`define REG_WRITE_EN_F  1'b0
+`define REG_WRITE_EN_T  1'b1
 
 //// ALU
 // ALU CONTROL

@@ -13,7 +13,7 @@ module pc(
     input clk,
     input clr, // set pc to 32'h0
     input [31:0] last_pc,
-    input [1:0] pc_inc_type, // 00: pc += 1; 01: pc += 1 + imme; 10: pc = reg/imme
+    input [1:0] pc_inc, // 00: pc += 1; 01: pc += 1 + imme; 10: pc = reg/imme
     input alu_branch_result, // 0: normal; 1: branch
     input [31:0] abs_addr,
     input [31:0] branch_addr,
@@ -31,10 +31,10 @@ module pc(
         if (clr) begin
             current_pc <= 32'h0;
         end else begin
-            case (pc_inc_type)
-                `PC_ADDR_NORMAL: current_pc <= normal_pc;
-                `PC_ADDR_BRANCH: current_pc <= alu_branch_result ? branched_pc : normal_pc;
-                `PC_ADDR_JUMP: current_pc <= abs_addr;
+            case (pc_inc)
+                `PC_INC_NORMAL: current_pc <= normal_pc;
+                `PC_INC_BRANCH: current_pc <= alu_branch_result ? branched_pc : normal_pc;
+                `PC_INC_JUMP: current_pc <= abs_addr;
                 default: current_pc <= normal_pc;
             endcase
         end
