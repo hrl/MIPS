@@ -20,7 +20,6 @@ module pc(
     output reg [31:0] current_pc
     );
 
-
     wire [31:0] normal_pc;
     wire [31:0] branched_pc;
 
