@@ -38,7 +38,7 @@ module regfile_tb;
         cont = 1;
         while(cont) begin
             cont = $fgets(str, fd);
-            if((str >> ((cont-1)*8)) != "#") begin
+            if((str >> ((cont-1)*8)) != "#" && cont) begin
                 @(posedge clk);
                 dummy = $sscanf(str, "%d %d %d %x %b %x %x", read1_num, read2_num, write_num, write_data, write_en, read1_data_e, read2_data_e);
                 #1;

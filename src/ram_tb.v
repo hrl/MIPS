@@ -40,7 +40,7 @@ module ram_tb;
         cont = 1;
         while(cont) begin
             cont = $fgets(str, fd);
-            if((str >> ((cont-1)*8)) != "#") begin
+            if((str >> ((cont-1)*8)) != "#" && cont) begin
                 dummy = $sscanf(str, "%d %b %b %b %x %x", addr, cs, rd, oe, write_data, read_data_e);
                 @(posedge clk);
                 #1;
