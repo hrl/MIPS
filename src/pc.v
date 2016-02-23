@@ -36,7 +36,7 @@ module pc(
         case (pc_inc_type)
             `PC_ADDR_NORMAL: _pc <= normal_pc;
             `PC_ADDR_BRANCH: _pc <= alu_branch_result ? branched_pc : normal_pc;
-            `PC_ADDR_JUMP: _pc <= alu_branch_result ? abs_addr : normal_pc;
+            `PC_ADDR_JUMP: _pc <= abs_addr;
             `PC_ADDR_UNUSED: _pc <= normal_pc;
         endcase
     end
