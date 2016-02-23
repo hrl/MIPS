@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 
-`include "ram.v"
+`include "ram.sv"
 
 module ram_tb;
     reg [9:0] addr;
@@ -42,7 +42,7 @@ module ram_tb;
             cont = $fgets(str, fd);
             if((str >> ((cont-1)*8)) != "#" && cont) begin
                 dummy = $sscanf(str, "%d %b %b %b %x %x", addr, cs, rd, oe, write_data, read_data_e);
-                @(posedge clk);
+                @(negedge clk);
                 #1;
                 if(read_data_e != read_data) begin
                     error_count = error_count + 1;

@@ -19,7 +19,7 @@ module ram(
     assign read_out_en = cs & rd & oe;
     assign read_data = read_out_en ? mem[addr] : 32'bz;
 
-    always @(posedge clk) begin
+    always_ff @(negedge clk) begin
         if(write_in_en) begin
             mem[addr] <= write_data;
         end

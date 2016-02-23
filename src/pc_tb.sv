@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 
-`include "pc.v"
+`include "pc.sv"
 `include "defines.vh"
 
 module pc_tb;
@@ -37,14 +37,13 @@ module pc_tb;
         fd = $fopen("pc_tb.txt", "r");
         clk = 0;
         clr = 1;
-        #10 clr = 0;
         error_count = 0;
         cont = 1;
         while(cont) begin
             cont = $fgets(str, fd);
             if((str >> ((cont-1)*8)) != "#" && cont) begin
                 @(posedge clk);
-                dummy = $sscanf(str, "%x %b %x %x %x", pc_inc_type, alu_branch_result, abs_addr, branch_addr, current_pc_e);
+                dummy = $sscanf(str, "%b %x %b %x %x %x", clr, pc_inc_type, alu_branch_result, abs_addr, branch_addr, current_pc_e);
                 #1;
                 if(current_pc_e != current_pc) begin
                     error_count = error_count + 1;

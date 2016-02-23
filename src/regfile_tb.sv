@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 
-`include "regfile.v"
+`include "regfile.sv"
 
 module regfile_tb;
     reg [4:0] read1_num;

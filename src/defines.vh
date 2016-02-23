@@ -1,27 +1,133 @@
 `ifndef _defines
 `define _defines
 
+//// INSTRUCTION SET
+// RAW INS
+`define INS_RAW_OPCODE 31:26
+`define INS_RAW_RS     25:21
+`define INS_RAW_RT     20:16
+`define INS_RAW_RD     15:11
+`define INS_RAW_SHAMT  10:6
+`define INS_RAW_FUNCT   5:0
+`define INS_RAW_IMME   15:0
+`define INS_RAW_ADDR   25:0
+
+// TYPE R
+// opcode == 6'b000000
+// match funct
+`define INS_R_ADD     6'b100000
+`define INS_R_ADDU    6'b100001
+`define INS_R_AND     6'b100100
+`define INS_R_SLL     6'b000000
+`define INS_R_SRA     6'b000011
+`define INS_R_SRL     6'b000010
+`define INS_R_SUB     6'b100010
+`define INS_R_OR      6'b100101
+`define INS_R_NOR     6'b100111
+`define INS_R_SLT     6'b101010
+`define INS_R_SLTU    6'b101010
+`define INS_R_JR      6'b001000
+`define INS_R_SYSCALL 6'b001100
+
+// TYPE I
+// match opcode
+`define INS_I_ADDI    6'b001000
+`define INS_I_ADDIU   6'b001001
+`define INS_I_ANDI    6'b001100
+`define INS_I_ORI     6'b001101
+`define INS_I_LW      6'b100011
+`define INS_I_SW      6'b101011
+`define INS_I_BEQ     6'b000100
+`define INS_I_BNE     6'b000101
+`define INS_I_SLTI    6'b001010
+
+// TYPE J
+// match opcode
+`define INS_J_J       6'b000010
+`define INS_J_JAL     6'b000011
+
+// TYPE C
+// coprocessor ins
+// opcode == 6'b010000
+// match rs
+`define INS_C_MFC0    5'b00000
+`define INS_C_MTC0    5'b00100
+// eret here
+// ...
+
+//// !END INSTRUCTION SET
+
+
+//// CONTROL
+// PARSED INS
+`define CON_LSB               0
+`define CON_IMME_EXT        0:0
+`define CON_PC_INC_TYPE     2:1
+`define CON_REG_WRITE_EN    3:3
+`define CON_REG_WRITE_DATA  5:4
+`define CON_REG_WRITE_NUM   7:6
+`define CON_REG_READ1_NUM   8:8
+`define CON_REG_READ2_NUM   9:9
+`define CON_ALU_OP         13:10
+`define CON_ALU_A          14:14
+`define CON_ALU_B          16:15
+`define CON_ALU_BRANCH     17:17
+`define CON_MEM_CS         18:18
+`define CON_MEM_RD         19:19
+`define CON_MSB            19
+
+//// IMME
+`define IMME_EXT_ZERO 1'b0
+`define IMME_EXT_SIGN 1'b1
+
+//// DATA MEM
+`define MEM_CS_DISABLE 1'b0
+`define MEM_CS_ENABLE  1'b1
+`define MEM_RD_WRITE 1'b0
+`define MEM_RD_READ  1'b1
+
 //// PC
 `define PC_ADDR_NORMAL 2'b00
 `define PC_ADDR_BRANCH 2'b01
 `define PC_ADDR_JUMP   2'b10
 `define PC_ADDR_UNUSED 2'b11
 
+//// REG
+`define REG_READ1_NUM_RT 1'b0
+`define REG_READ1_NUM_RS 1'b1
+`define REG_READ2_NUM_RT 1'b0
+`define REG_READ2_NUM_RS 1'b1
+`define REG_WRITE_NUM_RT 2'b00
+`define REG_WRITE_NUM_RD 2'b01
+`define REG_WRITE_NUM_31 2'b10
+`define REG_WRITE_DATA_ALU 2'b00
+`define REG_WRITE_DATA_DM  2'b01
+`define REG_WRITE_DATA_PC  2'b10
+
 //// ALU
+// ALU CONTROL
+`define ALU_A_REG  1'b0
+`define ALU_A_IMME 1'b1
+`define ALU_B_REG   2'b00
+`define ALU_B_IMME  2'b01
+`define ALU_B_SHAMT 2'b10
+`define ALU_BRANCH_BEQ 1'b0
+`define ALU_BRANCH_BNE 1'b0
+
 // ALU OP
-`define ALU_OP_ADD  4'b0000 // 0
-`define ALU_OP_SUB  4'b0001 // 1
-`define ALU_OP_SLL  4'b0010 // 2
-`define ALU_OP_SRA  4'b0011 // 3
-`define ALU_OP_SRL  4'b0100 // 4
-`define ALU_OP_OR   4'b0101 // 5
-`define ALU_OP_NOR  4'b0110 // 6
-`define ALU_OP_AND  4'b0111 // 7
-`define ALU_OP_NAND 4'b1000 // 8
-`define ALU_OP_XOR  4'b1001 // 9
-`define ALU_OP_NXOR 4'b1010 // a
-`define ALU_OP_LST  4'b1011 // b
-`define ALU_OP_LSTU 4'b1100 // c
-`define ALU_OP_NOP  4'b1111 // d
+`define ALU_OP_ADD  4'b0000 /* 0 */
+`define ALU_OP_SUB  4'b0001 /* 1 */
+`define ALU_OP_SLL  4'b0010 /* 2 */
+`define ALU_OP_SRA  4'b0011 /* 3 */
+`define ALU_OP_SRL  4'b0100 /* 4 */
+`define ALU_OP_OR   4'b0101 /* 5 */
+`define ALU_OP_NOR  4'b0110 /* 6 */
+`define ALU_OP_AND  4'b0111 /* 7 */
+`define ALU_OP_NAND 4'b1000 /* 8 */
+`define ALU_OP_XOR  4'b1001 /* 9 */
+`define ALU_OP_NXOR 4'b1010 /* a */
+`define ALU_OP_LST  4'b1011 /* b */
+`define ALU_OP_LSTU 4'b1100 /* c */
+`define ALU_OP_NOP  4'b1111 /* d */
 
 `endif

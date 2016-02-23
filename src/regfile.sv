@@ -13,18 +13,14 @@ module regfile(
     );
     reg [31:0] mem [31:0];
     
-    initial begin
-        mem[0] = 32'h00000000;
-    end
-    
-    always @(negedge clk) begin // posedge: read; negedge: write
-        if(write_en && write_num != 5'b00000) begin
+    always_ff @(negedge clk) begin // posedge: read; negedge: write
+        if(write_en) begin
             mem[write_num] <= write_data;
         end
     end
     
-    assign read1_data = mem[read1_num];
-    assign read2_data = mem[read2_num];
+    assign read1_data = (read1_num == 5'b00000) ? 32'h0 : mem[read1_num];
+    assign read2_data = (read2_num == 5'b00000) ? 32'h0 : mem[read2_num];
 endmodule
 
 `endif
