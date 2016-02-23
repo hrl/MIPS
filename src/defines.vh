@@ -1,6 +1,12 @@
 `ifndef _defines
 `define _defines
 
+//// PC
+`define PC_ADDR_NORMAL 2'b00
+`define PC_ADDR_BRANCH 2'b01
+`define PC_ADDR_JUMP   2'b10
+`define PC_ADDR_UNUSED 2'b11
+
 //// ALU
 // ALU OP
 `define ALU_OP_ADD  4'b0000 // 0
