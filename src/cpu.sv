@@ -1,0 +1,188 @@
+`ifndef _cpu
+`define _cpu
+
+`timescale 1ns / 1ps
+
+`include "defines.vh"
+`include "alu.sv"
+`include "regfile.sv"
+`include "rom.sv"
+`include "ram.sv"
+`include "pc.sv"
+`include "control.sv"
+
+module cpu(
+    );
+    /* Debug Sim */
+    `ifdef _DEBUG_MODE
+        always #5 clk = ~clk;
+        initial begin
+            clk = 0;
+            pc_clr = 1;
+            #10 pc_clr = 0;
+        end
+    `endif
+    
+    /* Global */
+    reg clk;
+    reg pc_clr;
+    wire [31:0] imme_extented;
+    assign imme_extented = 
+        (controls[`CON_IMME_EXT] == `IMME_EXT_ZERO) ? $unsigned(ins[`INS_RAW_IMME]) :
+        (controls[`CON_IMME_EXT] == `IMME_EXT_SIGN) ? $signed(ins[`INS_RAW_IMME]) :
+        32'h0;
+    wire [31:0] shamt_extented;
+    assign shamt_extented = {27'h0, ins[`INS_RAW_SHAMT]};
+
+    /* Program Counter */
+    //// VAR
+    // INPUT
+    // in global: clk
+    // in global: pc_clr
+    // in control: controls
+    wire alu_branch_result;
+    assign alu_branch_result =
+        (controls[`CON_ALU_BRANCH] == `ALU_BRANCH_BEQ) ? alu_zero :
+        (controls[`CON_ALU_BRANCH] == `ALU_BRANCH_BNE) ? !alu_zero :
+        1'h0;
+    wire [31:0] pc_abs_addr;
+    assign pc_abs_addr =
+        (controls[`CON_PC_JUMP] == `PC_JUMP_IMME) ? imme_extented :
+        (controls[`CON_PC_JUMP] == `PC_JUMP_REG) ? reg_read1_data :
+        32'h0;
+    wire [31:0] pc_branch_addr;
+    assign pc_branch_addr = imme_extented;
+    // OUTPUT
+    wire [31:0] current_pc;
+    //// MODULE
+    pc main_pc(
+        .clk(clk),
+        .clr(pc_clr),
+        .last_pc(current_pc),
+        .pc_inc(controls[`CON_PC_INC]),
+        .alu_branch_result(alu_branch_result),
+        .abs_addr(pc_abs_addr),
+        .branch_addr(pc_branch_addr),
+        .current_pc(current_pc)
+    );
+
+    /* Ins Memory */
+    //// VAR
+    // INPUT
+    wire [7:0] ins_addr;
+    assign ins_addr = current_pc[7:0];
+    // OUTPUT
+    wire [31:0] ins;
+    //// MODULE
+    rom ins_memory(
+        .addr(ins_addr),
+        .cs(1),
+        .read_data(ins)
+    );
+
+    /* Control */
+    //// VAR
+    // INPUT
+    // in im: ins
+    // OUTPUT
+    wire [`CON_MSB:`CON_LSB] controls;
+    //// MODULE
+    control main_control(
+        .ins(ins),
+        .controls(controls)
+    );
+
+    /* Register File */
+    //// VAR
+    // INPUT
+    wire [4:0] reg_read1_num;
+    assign reg_read1_num =
+        (controls[`CON_REG_READ1_NUM] == `REG_READ1_NUM_RS) ? ins[`INS_RAW_RS] :
+        (controls[`CON_REG_READ1_NUM] == `REG_READ1_NUM_RT) ? ins[`INS_RAW_RT] :
+        5'h0;
+    wire [4:0] reg_read2_num;
+    assign reg_read2_num =
+        (controls[`CON_REG_READ2_NUM] == `REG_READ2_NUM_RS) ? ins[`INS_RAW_RS] :
+        (controls[`CON_REG_READ2_NUM] == `REG_READ2_NUM_RT) ? ins[`INS_RAW_RT] :
+        5'h0;
+    wire [4:0] reg_write_num;
+    assign reg_write_num =
+        (controls[`CON_REG_WRITE_NUM] == `REG_WRITE_NUM_RT) ? ins[`INS_RAW_RT] :
+        (controls[`CON_REG_WRITE_NUM] == `REG_WRITE_NUM_RD) ? ins[`INS_RAW_RD] :
+        (controls[`CON_REG_WRITE_NUM] == `REG_WRITE_NUM_31) ? 5'h1f :
+        5'h0;
+    wire [31:0] reg_write_data;
+    assign reg_write_data =
+        (controls[`CON_REG_WRITE_DATA] == `REG_WRITE_DATA_ALU) ? alu_result :
+        (controls[`CON_REG_WRITE_DATA] == `REG_WRITE_DATA_DM) ? dm_read_data :
+        (controls[`CON_REG_WRITE_DATA] == `REG_WRITE_DATA_PC) ? current_pc :
+        32'h0;
+    // in control: controls
+    // in global: clk
+    // OUTPUT
+    wire [31:0] reg_read1_data;
+    wire [31:0] reg_read2_data;
+    //// MODULE
+    regfile main_regfile(
+        .read1_num(reg_read1_num),
+        .read2_num(reg_read2_num),
+        .write_num(reg_write_num),
+        .write_data(reg_write_data),
+        .write_en(controls[`CON_REG_WRITE_EN]),
+        .clk(clk),
+        .read1_data(reg_read1_data),
+        .read2_data(reg_read2_data)
+    );
+
+    /* Arithmetic Logic Unit */
+    //// VAR
+    // INPUT
+    // in control: controls
+    wire [31:0] alu_a;
+    assign alu_a =
+        (controls[`CON_ALU_A] == `ALU_A_REG) ? reg_read1_data:
+        (controls[`CON_ALU_A] == `ALU_A_IMME) ? imme_extented:
+        32'h0;
+    wire [31:0] alu_b;
+    assign alu_b =
+        (controls[`CON_ALU_B] == `ALU_B_REG) ? reg_read2_data:
+        (controls[`CON_ALU_B] == `ALU_B_IMME) ? imme_extented:
+        (controls[`CON_ALU_B] == `ALU_B_SHAMT) ? shamt_extented:
+        32'h0;
+    // OUTPUT
+    wire [31:0] alu_result;
+    wire alu_zero;
+    //// MODULE
+    alu main_alu(
+        .op(controls[`CON_ALU_OP]),
+        .a(alu_a),
+        .b(alu_b),
+        .result(alu_result),
+        .zero(alu_zero)
+    );
+
+    /* Data Memory */
+    //// VAR
+    // INPUT
+    wire [7:0] dm_addr;
+    assign dm_addr = alu_result[9:2]; // ignore low bits
+    // in control: controls
+    // in global: clk
+    wire [31:0] dm_write_data;
+    assign dm_write_data = reg_read2_data;
+    // OUTPUT
+    wire [31:0] dm_read_data;
+    //// module
+    ram data_memory(
+        .addr(dm_addr),
+        .cs(controls[`CON_MEM_CS]),
+        .rd(controls[`CON_MEM_RD]),
+        .oe(controls[`CON_MEM_RD]), // same as rd
+        .clk(clk),
+        .write_data(dm_write_data),
+        .read_data(dm_read_data)
+    );
+    
+endmodule
+
+`endif
