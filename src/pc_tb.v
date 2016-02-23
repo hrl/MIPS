@@ -5,11 +5,15 @@
 
 module pc_tb;
     reg clk;
+    reg clr;
     reg [1:0] pc_inc_type;
     reg alu_branch_result;
     reg [31:0] abs_addr;
     reg [31:0] branch_addr;
     wire [31:0] current_pc;
+    wire [31:0] last_pc;
+
+    assign last_pc = current_pc;
 
     reg [31:0] current_pc_e;
 
@@ -18,6 +22,8 @@ module pc_tb;
 
     pc pc(
         .clk(clk),
+        .clr(clr),
+        .last_pc(last_pc),
         .pc_inc_type(pc_inc_type),
         .alu_branch_result(alu_branch_result),
         .abs_addr(abs_addr),
@@ -30,6 +36,8 @@ module pc_tb;
     initial begin
         fd = $fopen("pc_tb.txt", "r");
         clk = 0;
+        clr = 1;
+        #10 clr = 0;
         error_count = 0;
         cont = 1;
         while(cont) begin
