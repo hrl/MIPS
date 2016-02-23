@@ -14,6 +14,7 @@
 `define INS_RAW_FUNCT   5:0
 `define INS_RAW_IMME   15:0
 `define INS_RAW_ADDR   25:0
+`define INS_RAW_IMME_SIGN 15
 
 // TYPE R
 // opcode == 6'b000000
@@ -66,22 +67,26 @@
 `define CON_LSB               0
 `define CON_IMME_EXT        0:0
 `define CON_PC_INC          2:1
-`define CON_REG_WRITE_EN    3:3
-`define CON_REG_WRITE_DATA  5:4
-`define CON_REG_WRITE_NUM   7:6
-`define CON_REG_READ1_NUM   8:8
-`define CON_REG_READ2_NUM   9:9
-`define CON_ALU_OP         13:10
-`define CON_ALU_A          14:14
-`define CON_ALU_B          16:15
-`define CON_ALU_BRANCH     17:17
-`define CON_MEM_CS         18:18
-`define CON_MEM_RD         19:19
-`define CON_MSB            19
+`define CON_PC_JUMP         3:3
+`define CON_REG_WRITE_EN    4:4
+`define CON_REG_WRITE_DATA  6:5
+`define CON_REG_WRITE_NUM   8:7
+`define CON_REG_READ1_NUM   9:9
+`define CON_REG_READ2_NUM  10:10
+`define CON_ALU_OP         14:11
+`define CON_ALU_A          15:15
+`define CON_ALU_B          17:16
+`define CON_ALU_BRANCH     18:18
+`define CON_MEM_CS         19:19
+`define CON_MEM_RD         20:20
+`define CON_MSB            20
 
 //// IMME
 `define IMME_EXT_ZERO 1'b0
 `define IMME_EXT_SIGN 1'b1
+
+//// INS MEM
+`define PROGRAM_FILE "program.txt"
 
 //// DATA MEM
 `define MEM_CS_DISABLE 1'b0
@@ -90,6 +95,8 @@
 `define MEM_RD_READ  1'b1
 
 //// PC
+`define PC_JUMP_IMME 1'b0
+`define PC_JUMP_REG  1'b1
 `define PC_INC_NORMAL 2'b00
 `define PC_INC_BRANCH 2'b01
 `define PC_INC_JUMP   2'b10
