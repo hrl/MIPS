@@ -11,17 +11,17 @@ module control(
     reg [`CON_MSB:`CON_LSB] controls_reg;
     assign controls = controls_reg;
     // controls =
-    // {MEM_RD, MEM_CS, ALU_BRANCH, ALU_B, ALU_A, ALU_OP, REG_READ2_NUM, REG_READ1_NUM, REG_WRITE_NUM, REG_WRITE_DATA, REG_WRITE_EN, PC_INC, IMME_EXT}
-    //      19      18          17  16 15     14  13  10              9              8  7           6  5            4             3  2    1         0
+    // {MEM_RD, MEM_CS, ALU_BRANCH, ALU_B, ALU_A, ALU_OP, REG_READ2_NUM, REG_READ1_NUM, REG_WRITE_NUM, REG_WRITE_DATA, REG_WRITE_EN, PC_JUMP, PC_INC, IMME_EXT}
+    //      20      19          18  17 16     15  14  11             10              9  8           7  6            5             4        3  2    1         0
     always_comb begin
         // default NOP (MEM_CS_DISABLE, REG_WRITE_EN_F)
-        controls_reg = {`MEM_RD_READ, `MEM_CS_DISABLE, `ALU_BRANCH_BEQ, `ALU_B_REG, `ALU_A_REG, `ALU_OP_OR, `REG_READ2_NUM_RT, `REG_READ1_NUM_RS, `REG_WRITE_NUM_RD, `REG_WRITE_DATA_ALU, `REG_WRITE_EN_F, `PC_INC_NORMAL, `IMME_EXT_ZERO};
+        controls_reg = {`MEM_RD_READ, `MEM_CS_DISABLE, `ALU_BRANCH_BEQ, `ALU_B_REG, `ALU_A_REG, `ALU_OP_OR, `REG_READ2_NUM_RT, `REG_READ1_NUM_RS, `REG_WRITE_NUM_RD, `REG_WRITE_DATA_ALU, `REG_WRITE_EN_F, `PC_JUMP_IMME, `PC_INC_NORMAL, `IMME_EXT_ZERO};
         // parse ins
         if (ins[`INS_RAW_OPCODE] == 6'b000000) begin
             // TYPE R
             case (ins[`INS_RAW_FUNCT])
                 // TYPE R
-                `INS_R_ADD: controls_reg = {`MEM_RD_READ, `MEM_CS_DISABLE, `ALU_BRANCH_BEQ, `ALU_B_REG, `ALU_A_REG, `ALU_OP_ADD, `REG_READ2_NUM_RT, `REG_READ1_NUM_RS, `REG_WRITE_NUM_RD, `REG_WRITE_DATA_ALU, `REG_WRITE_EN_T, `PC_INC_NORMAL, `IMME_EXT_ZERO};
+                `INS_R_ADD: controls_reg = {`MEM_RD_READ, `MEM_CS_DISABLE, `ALU_BRANCH_BEQ, `ALU_B_REG, `ALU_A_REG, `ALU_OP_ADD, `REG_READ2_NUM_RT, `REG_READ1_NUM_RS, `REG_WRITE_NUM_RD, `REG_WRITE_DATA_ALU, `REG_WRITE_EN_T, `PC_JUMP_IMME, `PC_INC_NORMAL, `IMME_EXT_ZERO};
                 // default:
             endcase
         end else begin
@@ -49,6 +49,7 @@ module control(
             $display("controls: %b, %x", controls_reg, controls_reg);
             $display("    imme_ext      : %b, %x", controls_reg[`CON_IMME_EXT], controls_reg[`CON_IMME_EXT]);
             $display("    pc_inc        : %b, %x", controls_reg[`CON_PC_INC], controls_reg[`CON_PC_INC]);
+            $display("    pc_jump       : %b, %x", controls_reg[`CON_PC_JUMP], controls_reg[`CON_PC_JUMP]);
             $display("    reg_write_en  : %b, %x", controls_reg[`CON_REG_WRITE_EN], controls_reg[`CON_REG_WRITE_EN]);
             $display("    reg_write_data: %b, %x", controls_reg[`CON_REG_WRITE_DATA], controls_reg[`CON_REG_WRITE_DATA]);
             $display("    reg_write_num : %b, %x", controls_reg[`CON_REG_WRITE_NUM], controls_reg[`CON_REG_WRITE_NUM]);
