@@ -34,7 +34,8 @@ module pc(
                 `PC_INC_NORMAL: current_pc <= normal_pc;
                 `PC_INC_BRANCH: current_pc <= alu_branch_result ? branched_pc : normal_pc;
                 `PC_INC_JUMP: current_pc <= abs_addr;
-                default: current_pc <= normal_pc;
+                `PC_INC_STOP: current_pc <= last_pc;
+                default: current_pc <= last_pc;
             endcase
         end
     end
