@@ -158,5 +158,6 @@
 `define ALU_OP_LST  4'b1011 /* b */
 `define ALU_OP_LSTU 4'b1100 /* c */
 `define ALU_OP_NOP  4'b1111 /* f */
+`define ALU_OP_X    4'bxxxx /* 5 */
 
 `endif
