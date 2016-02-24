@@ -14,24 +14,57 @@ module control(
     // {MEM_RD, MEM_CS, ALU_BRANCH, ALU_B, ALU_A, ALU_OP, REG_READ2_NUM, REG_READ1_NUM, REG_WRITE_NUM, REG_WRITE_DATA, REG_WRITE_EN, PC_JUMP, PC_INC, IMME_EXT}
     //      20      19          18  17 16     15  14  11             10              9  8           7  6            5             4        3  2    1         0
     always_comb begin
-        // default NOP (MEM_CS_DISABLE, REG_WRITE_EN_F)
-        controls_reg = {`MEM_RD_READ, `MEM_CS_DISABLE, `ALU_BRANCH_BEQ, `ALU_B_REG, `ALU_A_REG, `ALU_OP_OR, `REG_READ2_NUM_RT, `REG_READ1_NUM_RS, `REG_WRITE_NUM_RD, `REG_WRITE_DATA_ALU, `REG_WRITE_EN_F, `PC_JUMP_IMME, `PC_INC_NORMAL, `IMME_EXT_ZERO};
+        // default STOP (MEM_RD_READ, MEM_CS_DISABLE, REG_WRITE_EN_F, PC_INC_STOP, *_X)
+        controls_reg = {`MEM_RD_READ, `MEM_CS_DISABLE, `ALU_BRANCH_X, `ALU_B_X, `ALU_A_X, `ALU_OP_OR, `REG_READ2_NUM_X, `REG_READ1_NUM_X, `REG_WRITE_NUM_X, `REG_WRITE_DATA_X, `REG_WRITE_EN_F, `PC_JUMP_X, `PC_INC_STOP, `IMME_EXT_X};
         // parse ins
         if (ins[`INS_RAW_OPCODE] == 6'b000000) begin
             // TYPE R
             case (ins[`INS_RAW_FUNCT])
                 // TYPE R
-                `INS_R_ADD: controls_reg = {`MEM_RD_READ, `MEM_CS_DISABLE, `ALU_BRANCH_BEQ, `ALU_B_REG, `ALU_A_REG, `ALU_OP_ADD, `REG_READ2_NUM_RT, `REG_READ1_NUM_RS, `REG_WRITE_NUM_RD, `REG_WRITE_DATA_ALU, `REG_WRITE_EN_T, `PC_JUMP_IMME, `PC_INC_NORMAL, `IMME_EXT_ZERO};
-                // default:
+                //                                                                               |----------|              |----------|  |---------------|  |---------------|
+                `INS_R_SLL:     controls_reg = {`MEM_RD_READ , `MEM_CS_DISABLE, `ALU_BRANCH_X  , `ALU_B_SHAMT, `ALU_A_REG, `ALU_OP_SLL , `REG_READ2_NUM_X , `REG_READ1_NUM_RT, `REG_WRITE_NUM_RD, `REG_WRITE_DATA_ALU, `REG_WRITE_EN_T, `PC_JUMP_X   , `PC_INC_NORMAL, `IMME_EXT_X   };
+                `INS_R_SRA:     controls_reg = {`MEM_RD_READ , `MEM_CS_DISABLE, `ALU_BRANCH_X  , `ALU_B_SHAMT, `ALU_A_REG, `ALU_OP_SRA , `REG_READ2_NUM_X , `REG_READ1_NUM_RT, `REG_WRITE_NUM_RD, `REG_WRITE_DATA_ALU, `REG_WRITE_EN_T, `PC_JUMP_X   , `PC_INC_NORMAL, `IMME_EXT_X   };
+                `INS_R_SRL:     controls_reg = {`MEM_RD_READ , `MEM_CS_DISABLE, `ALU_BRANCH_X  , `ALU_B_SHAMT, `ALU_A_REG, `ALU_OP_SRL , `REG_READ2_NUM_X , `REG_READ1_NUM_RT, `REG_WRITE_NUM_RD, `REG_WRITE_DATA_ALU, `REG_WRITE_EN_T, `PC_JUMP_X   , `PC_INC_NORMAL, `IMME_EXT_X   };
+                //                                                                                                         |----------|
+                `INS_R_ADD:     controls_reg = {`MEM_RD_READ , `MEM_CS_DISABLE, `ALU_BRANCH_X  , `ALU_B_REG  , `ALU_A_REG, `ALU_OP_ADD , `REG_READ2_NUM_RT, `REG_READ1_NUM_RS, `REG_WRITE_NUM_RD, `REG_WRITE_DATA_ALU, `REG_WRITE_EN_T, `PC_JUMP_X   , `PC_INC_NORMAL, `IMME_EXT_X   };
+                `INS_R_ADDU:    controls_reg = {`MEM_RD_READ , `MEM_CS_DISABLE, `ALU_BRANCH_X  , `ALU_B_REG  , `ALU_A_REG, `ALU_OP_ADD , `REG_READ2_NUM_RT, `REG_READ1_NUM_RS, `REG_WRITE_NUM_RD, `REG_WRITE_DATA_ALU, `REG_WRITE_EN_T, `PC_JUMP_X   , `PC_INC_NORMAL, `IMME_EXT_X   };
+                `INS_R_AND:     controls_reg = {`MEM_RD_READ , `MEM_CS_DISABLE, `ALU_BRANCH_X  , `ALU_B_REG  , `ALU_A_REG, `ALU_OP_AND , `REG_READ2_NUM_RT, `REG_READ1_NUM_RS, `REG_WRITE_NUM_RD, `REG_WRITE_DATA_ALU, `REG_WRITE_EN_T, `PC_JUMP_X   , `PC_INC_NORMAL, `IMME_EXT_X   };
+                `INS_R_SUB:     controls_reg = {`MEM_RD_READ , `MEM_CS_DISABLE, `ALU_BRANCH_X  , `ALU_B_REG  , `ALU_A_REG, `ALU_OP_SUB , `REG_READ2_NUM_RT, `REG_READ1_NUM_RS, `REG_WRITE_NUM_RD, `REG_WRITE_DATA_ALU, `REG_WRITE_EN_T, `PC_JUMP_X   , `PC_INC_NORMAL, `IMME_EXT_X   };
+                `INS_R_OR:      controls_reg = {`MEM_RD_READ , `MEM_CS_DISABLE, `ALU_BRANCH_X  , `ALU_B_REG  , `ALU_A_REG, `ALU_OP_OR  , `REG_READ2_NUM_RT, `REG_READ1_NUM_RS, `REG_WRITE_NUM_RD, `REG_WRITE_DATA_ALU, `REG_WRITE_EN_T, `PC_JUMP_X   , `PC_INC_NORMAL, `IMME_EXT_X   };
+                `INS_R_NOR:     controls_reg = {`MEM_RD_READ , `MEM_CS_DISABLE, `ALU_BRANCH_X  , `ALU_B_REG  , `ALU_A_REG, `ALU_OP_NOR , `REG_READ2_NUM_RT, `REG_READ1_NUM_RS, `REG_WRITE_NUM_RD, `REG_WRITE_DATA_ALU, `REG_WRITE_EN_T, `PC_JUMP_X   , `PC_INC_NORMAL, `IMME_EXT_X   };
+                `INS_R_SLT:     controls_reg = {`MEM_RD_READ , `MEM_CS_DISABLE, `ALU_BRANCH_X  , `ALU_B_REG  , `ALU_A_REG, `ALU_OP_LST , `REG_READ2_NUM_RT, `REG_READ1_NUM_RS, `REG_WRITE_NUM_RD, `REG_WRITE_DATA_ALU, `REG_WRITE_EN_T, `PC_JUMP_X   , `PC_INC_NORMAL, `IMME_EXT_X   };
+                `INS_R_SLTU:    controls_reg = {`MEM_RD_READ , `MEM_CS_DISABLE, `ALU_BRANCH_X  , `ALU_B_REG  , `ALU_A_REG, `ALU_OP_LSTU, `REG_READ2_NUM_RT, `REG_READ1_NUM_RS, `REG_WRITE_NUM_RD, `REG_WRITE_DATA_ALU, `REG_WRITE_EN_T, `PC_JUMP_X   , `PC_INC_NORMAL, `IMME_EXT_X   };
+                // Jump Register
+                `INS_R_JR:      controls_reg = {`MEM_RD_READ , `MEM_CS_DISABLE, `ALU_BRANCH_X  , `ALU_B_X    , `ALU_A_X  , `ALU_OP_X   , `REG_READ2_NUM_X , `REG_READ1_NUM_RS, `REG_WRITE_NUM_X , `REG_WRITE_DATA_X  , `REG_WRITE_EN_F, `PC_JUMP_REG , `PC_INC_JUMP  , `IMME_EXT_X   };
+                // SYSCALL here
+                // default STOP (MEM_RD_READ, MEM_CS_DISABLE, REG_WRITE_EN_F, PC_INC_STOP, *_X)
+                default:        controls_reg = {`MEM_RD_READ , `MEM_CS_DISABLE, `ALU_BRANCH_X  , `ALU_B_X    , `ALU_A_X  , `ALU_OP_X   , `REG_READ2_NUM_X , `REG_READ1_NUM_X , `REG_WRITE_NUM_X , `REG_WRITE_DATA_X  , `REG_WRITE_EN_F, `PC_JUMP_X   , `PC_INC_STOP  , `IMME_EXT_X   };
             endcase
         end else begin
             // TYPE I/J/C
             case (ins[`INS_RAW_OPCODE])
                 // TYPE I
+                //                                                                                                         |----------|                                                                                                                                |------------|
+                `INS_I_ADDI:    controls_reg = {`MEM_RD_READ , `MEM_CS_DISABLE, `ALU_BRANCH_X  , `ALU_B_IMME , `ALU_A_REG, `ALU_OP_ADD , `REG_READ2_NUM_X , `REG_READ1_NUM_RS, `REG_WRITE_NUM_RT, `REG_WRITE_DATA_ALU, `REG_WRITE_EN_T, `PC_JUMP_X   , `PC_INC_NORMAL, `IMME_EXT_SIGN};
+                `INS_I_ADDIU:   controls_reg = {`MEM_RD_READ , `MEM_CS_DISABLE, `ALU_BRANCH_X  , `ALU_B_IMME , `ALU_A_REG, `ALU_OP_ADD , `REG_READ2_NUM_X , `REG_READ1_NUM_RS, `REG_WRITE_NUM_RT, `REG_WRITE_DATA_ALU, `REG_WRITE_EN_T, `PC_JUMP_X   , `PC_INC_NORMAL, `IMME_EXT_SIGN}; // !!!
+                `INS_I_ANDI:    controls_reg = {`MEM_RD_READ , `MEM_CS_DISABLE, `ALU_BRANCH_X  , `ALU_B_IMME , `ALU_A_REG, `ALU_OP_AND , `REG_READ2_NUM_X , `REG_READ1_NUM_RS, `REG_WRITE_NUM_RT, `REG_WRITE_DATA_ALU, `REG_WRITE_EN_T, `PC_JUMP_X   , `PC_INC_NORMAL, `IMME_EXT_ZERO};
+                `INS_I_ORI:     controls_reg = {`MEM_RD_READ , `MEM_CS_DISABLE, `ALU_BRANCH_X  , `ALU_B_IMME , `ALU_A_REG, `ALU_OP_OR  , `REG_READ2_NUM_X , `REG_READ1_NUM_RS, `REG_WRITE_NUM_RT, `REG_WRITE_DATA_ALU, `REG_WRITE_EN_T, `PC_JUMP_X   , `PC_INC_NORMAL, `IMME_EXT_ZERO};
+                `INS_I_SLTI:    controls_reg = {`MEM_RD_READ , `MEM_CS_DISABLE, `ALU_BRANCH_X  , `ALU_B_IMME , `ALU_A_REG, `ALU_OP_LST , `REG_READ2_NUM_X , `REG_READ1_NUM_RS, `REG_WRITE_NUM_RT, `REG_WRITE_DATA_ALU, `REG_WRITE_EN_T, `PC_JUMP_X   , `PC_INC_NORMAL, `IMME_EXT_SIGN};
+                //                              |-----------|                                                                            |---------------|                     |---------------|  |-----------------|  |-------------|
+                `INS_I_LW:      controls_reg = {`MEM_RD_READ , `MEM_CS_ENABLE , `ALU_BRANCH_X  , `ALU_B_IMME , `ALU_A_REG, `ALU_OP_ADD , `REG_READ2_NUM_X , `REG_READ1_NUM_RS, `REG_WRITE_NUM_RT, `REG_WRITE_DATA_DM , `REG_WRITE_EN_T, `PC_JUMP_X   , `PC_INC_NORMAL, `IMME_EXT_SIGN};
+                `INS_I_SW:      controls_reg = {`MEM_RD_WRITE, `MEM_CS_ENABLE , `ALU_BRANCH_X  , `ALU_B_IMME , `ALU_A_REG, `ALU_OP_ADD , `REG_READ2_NUM_RT, `REG_READ1_NUM_RS, `REG_WRITE_NUM_X , `REG_WRITE_DATA_X  , `REG_WRITE_EN_F, `PC_JUMP_X   , `PC_INC_NORMAL, `IMME_EXT_SIGN};
+                //                                                              |-------------|
+                `INS_I_BEQ:     controls_reg = {`MEM_RD_READ , `MEM_CS_DISABLE, `ALU_BRANCH_BEQ, `ALU_B_REG  , `ALU_A_REG, `ALU_OP_SUB , `REG_READ2_NUM_RT, `REG_READ1_NUM_RS, `REG_WRITE_NUM_X , `REG_WRITE_DATA_X  , `REG_WRITE_EN_F, `PC_JUMP_X   , `PC_INC_BRANCH, `IMME_EXT_SIGN};
+                `INS_I_BNE:     controls_reg = {`MEM_RD_READ , `MEM_CS_DISABLE, `ALU_BRANCH_BNE, `ALU_B_REG  , `ALU_A_REG, `ALU_OP_SUB , `REG_READ2_NUM_RT, `REG_READ1_NUM_RS, `REG_WRITE_NUM_X , `REG_WRITE_DATA_X  , `REG_WRITE_EN_F, `PC_JUMP_X   , `PC_INC_BRANCH, `IMME_EXT_SIGN};
                 // TYPE J
+                `INS_J_J:       controls_reg = {`MEM_RD_READ , `MEM_CS_DISABLE, `ALU_BRANCH_X  , `ALU_B_X    , `ALU_A_X  , `ALU_OP_X   , `REG_READ2_NUM_X , `REG_READ1_NUM_X , `REG_WRITE_NUM_X , `REG_WRITE_DATA_X  , `REG_WRITE_EN_F, `PC_JUMP_IMME, `PC_INC_JUMP  , `IMME_EXT_ZERO};
+                `INS_J_JAL:     controls_reg = {`MEM_RD_READ , `MEM_CS_DISABLE, `ALU_BRANCH_X  , `ALU_B_X    , `ALU_A_X  , `ALU_OP_X   , `REG_READ2_NUM_X , `REG_READ1_NUM_X , `REG_WRITE_NUM_31, `REG_WRITE_DATA_PC , `REG_WRITE_EN_T, `PC_JUMP_IMME, `PC_INC_JUMP  , `IMME_EXT_ZERO};
                 // TYPE C
-                // NOP
-                // default:
+                // MFC0 here
+                // MTC0 here
+                // ERET here
+                // default STOP (MEM_RD_READ, MEM_CS_DISABLE, REG_WRITE_EN_F, PC_INC_STOP, *_X)
+                default:        controls_reg = {`MEM_RD_READ , `MEM_CS_DISABLE, `ALU_BRANCH_X  , `ALU_B_X    , `ALU_A_X  , `ALU_OP_X   , `REG_READ2_NUM_X , `REG_READ1_NUM_X , `REG_WRITE_NUM_X , `REG_WRITE_DATA_X  , `REG_WRITE_EN_F, `PC_JUMP_X   , `PC_INC_STOP  , `IMME_EXT_X   };
             endcase
         end
 
