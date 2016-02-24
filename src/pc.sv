@@ -4,7 +4,7 @@
 `include "defines.vh"
 
 /*
-* posedge clk: update _pc
+* negedge clk: update _pc
 *
 * all value ignore low bits
 */
