@@ -2,7 +2,13 @@
 `define _defines
 
 //// DEBUG
-`define _DEBUG_MODE
+`define _DEBUG_MODE_CPU
+//`define _DEBUG_MODE_CON
+`define _DEBUG_MODE_RAM
+
+`define _DEBUG_MODE_AUTO_STOP
+
+`define _DEBUG_MODE_MASK_X_VALUE
 
 //// INSTRUCTION SET
 // RAW INS
@@ -84,7 +90,12 @@
 //// IMME
 `define IMME_EXT_ZERO 1'b0
 `define IMME_EXT_SIGN 1'b1
+
+`ifdef _DEBUG_MODE_MASK_X_VALUE
+`define IMME_EXT_X    1'b0
+`else
 `define IMME_EXT_X    1'bx
+`endif
 
 //// INS MEM
 `define PROGRAM_FILE "program.txt"
@@ -98,32 +109,50 @@
 //// PC
 `define PC_JUMP_IMME 1'b0
 `define PC_JUMP_REG  1'b1
+
+`ifdef _DEBUG_MODE_MASK_X_VALUE
+`define PC_JUMP_X    1'b0
+`else
 `define PC_JUMP_X    1'bx
+`endif
 
 `define PC_INC_NORMAL 2'b00
 `define PC_INC_BRANCH 2'b01
 `define PC_INC_JUMP   2'b10
 `define PC_INC_STOP   2'b11
+
+`ifdef _DEBUG_MODE_MASK_X_VALUE
+`define PC_INC_X      2'b00
+`else
 `define PC_INC_X      2'bxx
+`endif
 
 //// REG
 `define REG_READ1_NUM_RT 1'b0
 `define REG_READ1_NUM_RS 1'b1
-`define REG_READ1_NUM_X  1'bx
 
 `define REG_READ2_NUM_RT 1'b0
 `define REG_READ2_NUM_RS 1'b1
-`define REG_READ2_NUM_X  1'bx
 
 `define REG_WRITE_NUM_RT 2'b00
 `define REG_WRITE_NUM_RD 2'b01
 `define REG_WRITE_NUM_31 2'b10
-`define REG_WRITE_NUM_X  2'bxx
 
 `define REG_WRITE_DATA_ALU 2'b00
 `define REG_WRITE_DATA_DM  2'b01
 `define REG_WRITE_DATA_PC  2'b10
-`define REG_WRITE_DATA_X   2'bxx
+
+`ifdef _DEBUG_MODE_MASK_X_VALUE
+`define REG_READ1_NUM_X  1'b0
+`define REG_READ2_NUM_X  1'b0
+`define REG_WRITE_NUM_X  2'b00
+`define REG_WRITE_DATA_X 2'b00
+`else
+`define REG_READ1_NUM_X  1'bx
+`define REG_READ2_NUM_X  1'bx
+`define REG_WRITE_NUM_X  2'bxx
+`define REG_WRITE_DATA_X 2'bxx
+`endif
 
 `define REG_WRITE_EN_F  1'b0
 `define REG_WRITE_EN_T  1'b1
@@ -132,16 +161,23 @@
 // ALU CONTROL
 `define ALU_A_REG  1'b0
 `define ALU_A_IMME 1'b1
-`define ALU_A_X    1'bx
 
 `define ALU_B_REG   2'b00
 `define ALU_B_IMME  2'b01
 `define ALU_B_SHAMT 2'b10
-`define ALU_B_X     2'bxx
 
 `define ALU_BRANCH_BEQ 1'b0
 `define ALU_BRANCH_BNE 1'b1
-`define ALU_BRANCH_X   1'bx
+
+`ifdef _DEBUG_MODE_MASK_X_VALUE
+`define ALU_A_X      1'b0
+`define ALU_B_X      2'b00
+`define ALU_BRANCH_X 1'b0
+`else
+`define ALU_A_X      1'bx
+`define ALU_B_X      2'bxx
+`define ALU_BRANCH_X 1'bx
+`endif
 
 // ALU OP
 `define ALU_OP_ADD  4'b0000 /* 0 */
@@ -158,6 +194,11 @@
 `define ALU_OP_LST  4'b1011 /* b */
 `define ALU_OP_LSTU 4'b1100 /* c */
 `define ALU_OP_NOP  4'b1111 /* f */
-`define ALU_OP_X    4'bxxxx /* 5 */
+
+`ifdef _DEBUG_MODE_MASK_X_VALUE
+`define ALU_OP_X    4'b0101 /* 5 */
+`else
+`define ALU_OP_X    4'bxxxx
+`endif
 
 `endif

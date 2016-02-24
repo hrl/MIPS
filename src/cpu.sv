@@ -14,7 +14,7 @@
 module cpu(
     );
     /* Debug Sim */
-    `ifdef _DEBUG_MODE
+    `ifdef _DEBUG_MODE_CPU
         always #5 clk = ~clk;
         initial begin
             clk = 0;
@@ -22,14 +22,20 @@ module cpu(
             #10 pc_clr = 0;
         end
     `endif
+    `ifdef _DEBUG_MODE_RAM
+        wire dm_cs;
+        wire dm_rd;
+        assign dm_cs = controls[`CON_MEM_CS];
+        assign dm_rd = controls[`CON_MEM_RD];
+    `endif
     
     /* Global */
     reg clk;
     reg pc_clr;
     wire [31:0] imme_extented;
     assign imme_extented = 
-        (controls[`CON_IMME_EXT] == `IMME_EXT_ZERO) ? $unsigned(ins[`INS_RAW_IMME]) :
-        (controls[`CON_IMME_EXT] == `IMME_EXT_SIGN) ? $signed(ins[`INS_RAW_IMME]) :
+        (controls[`CON_IMME_EXT] == `IMME_EXT_ZERO) ? {16'h0, ins[`INS_RAW_IMME]} :
+        (controls[`CON_IMME_EXT] == `IMME_EXT_SIGN) ? {(ins[`INS_RAW_IMME_SIGN] == 1'b0) ? 16'h0000: 16'hffff, ins[`INS_RAW_IMME]} :
         32'h0;
     wire [31:0] shamt_extented;
     assign shamt_extented = {27'h0, ins[`INS_RAW_SHAMT]};

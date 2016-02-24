@@ -38,6 +38,11 @@ module pc(
                 default: current_pc <= last_pc;
             endcase
         end
+        `ifdef _DEBUG_MODE_AUTO_STOP
+            if(pc_inc == `PC_INC_STOP) begin
+                $finish;
+            end
+        `endif
     end
 
 endmodule

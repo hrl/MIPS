@@ -1,6 +1,8 @@
 `ifndef _ram
 `define _ram
 
+`include "defines.vh"
+
 module ram(
     input [7:0] addr, // 256 * 4B
     input cs, // chip select
@@ -22,7 +24,19 @@ module ram(
     always_ff @(negedge clk) begin
         if(write_in_en) begin
             mem[addr] <= write_data;
+            `ifdef _DEBUG_MODE_RAM
+                $display("RAM WRITE [%d]: %x @ %0t", addr, write_data, $time);
+            `endif
         end
     end
+
+    `ifdef _DEBUG_MODE_RAM
+    initial begin
+        reg [7:0] i;
+        for(i=8'd0; i<8'd20; i=i+1) begin
+            $monitor("RAM[%d]: %x @ %0t", i, mem[i], $time);
+        end
+    end
+    `endif
 endmodule
 `endif
