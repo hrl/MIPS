@@ -29,7 +29,7 @@
 `define INS_R_OR      6'b100101
 `define INS_R_NOR     6'b100111
 `define INS_R_SLT     6'b101010
-`define INS_R_SLTU    6'b101010
+`define INS_R_SLTU    6'b101011
 `define INS_R_JR      6'b001000
 `define INS_R_SYSCALL 6'b001100
 
