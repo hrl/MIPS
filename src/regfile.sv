@@ -9,9 +9,14 @@ module regfile(
     input write_en,
     input clk,
     output [31:0] read1_data,
-    output [31:0] read2_data
+    output [31:0] read2_data,
+    output [31:0] _direct_out_v0,
+    output [31:0] _direct_out_a0
     );
     reg [31:0] mem [31:0];
+
+    assign _direct_out_v0 = mem[2];
+    assign _direct_out_a0 = mem[4];
     
     always_ff @(negedge clk) begin // posedge: read; negedge: write
         if(write_en) begin

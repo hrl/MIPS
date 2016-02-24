@@ -4,7 +4,7 @@
 //// DEBUG
 `define _DEBUG_MODE_CPU
 //`define _DEBUG_MODE_CON
-`define _DEBUG_MODE_RAM
+//`define _DEBUG_MODE_RAM
 
 `define _DEBUG_MODE_AUTO_STOP
 
@@ -120,6 +120,8 @@
 `define PC_INC_BRANCH 2'b01
 `define PC_INC_JUMP   2'b10
 `define PC_INC_STOP   2'b11
+
+`define PC_INC_STOP_OR_MASK 2'b11
 
 `ifdef _DEBUG_MODE_MASK_X_VALUE
 `define PC_INC_X      2'b00

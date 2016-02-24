@@ -17,7 +17,8 @@ module pc(
     input alu_branch_result, // 0: normal; 1: branch
     input [31:0] abs_addr,
     input [31:0] branch_addr,
-    output reg [31:0] current_pc
+    output reg [31:0] current_pc,
+    output reg [31:0] cycle_count
     );
 
     wire [31:0] normal_pc;
@@ -29,6 +30,7 @@ module pc(
     always_ff @(negedge clk) begin
         if (clr) begin
             current_pc <= 32'h0;
+            cycle_count <= 32'h0;
         end else begin
             case (pc_inc)
                 `PC_INC_NORMAL: current_pc <= normal_pc;
@@ -37,9 +39,11 @@ module pc(
                 `PC_INC_STOP: current_pc <= last_pc;
                 default: current_pc <= last_pc;
             endcase
+            cycle_count <= cycle_count + 1;
         end
         `ifdef _DEBUG_MODE_AUTO_STOP
             if(pc_inc == `PC_INC_STOP) begin
+                $display("HALT, cycle_count: %d", cycle_count+1);
                 $finish;
             end
         `endif

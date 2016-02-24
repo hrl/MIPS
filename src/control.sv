@@ -36,7 +36,7 @@ module control(
                 `INS_R_SLTU:    controls_reg = {`MEM_RD_READ , `MEM_CS_DISABLE, `ALU_BRANCH_X  , `ALU_B_REG  , `ALU_A_REG, `ALU_OP_LSTU, `REG_READ2_NUM_RT, `REG_READ1_NUM_RS, `REG_WRITE_NUM_RD, `REG_WRITE_DATA_ALU, `REG_WRITE_EN_T, `PC_JUMP_X   , `PC_INC_NORMAL, `IMME_EXT_X   };
                 // Jump Register
                 `INS_R_JR:      controls_reg = {`MEM_RD_READ , `MEM_CS_DISABLE, `ALU_BRANCH_X  , `ALU_B_X    , `ALU_A_X  , `ALU_OP_X   , `REG_READ2_NUM_X , `REG_READ1_NUM_RS, `REG_WRITE_NUM_X , `REG_WRITE_DATA_X  , `REG_WRITE_EN_F, `PC_JUMP_REG , `PC_INC_JUMP  , `IMME_EXT_X   };
-                // SYSCALL here, tmp use NOP
+                // SYSCALL, use NOP
                 `INS_R_SYSCALL: controls_reg = {`MEM_RD_READ , `MEM_CS_DISABLE, `ALU_BRANCH_X  , `ALU_B_X    , `ALU_A_X  , `ALU_OP_X   , `REG_READ2_NUM_X , `REG_READ1_NUM_X , `REG_WRITE_NUM_X , `REG_WRITE_DATA_X  , `REG_WRITE_EN_F, `PC_JUMP_X   , `PC_INC_NORMAL, `IMME_EXT_X   };
                 // default STOP (MEM_RD_READ, MEM_CS_DISABLE, REG_WRITE_EN_F, PC_INC_STOP, *_X)
                 default:        controls_reg = {`MEM_RD_READ , `MEM_CS_DISABLE, `ALU_BRANCH_X  , `ALU_B_X    , `ALU_A_X  , `ALU_OP_X   , `REG_READ2_NUM_X , `REG_READ1_NUM_X , `REG_WRITE_NUM_X , `REG_WRITE_DATA_X  , `REG_WRITE_EN_F, `PC_JUMP_X   , `PC_INC_STOP  , `IMME_EXT_X   };

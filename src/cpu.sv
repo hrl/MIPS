@@ -19,7 +19,10 @@ module cpu(
         initial begin
             clk = 0;
             pc_clr = 1;
-            #10 pc_clr = 0;
+            cpu_clr = 1;
+            #10;
+            pc_clr = 0;
+            cpu_clr = 0;
         end
     `endif
     `ifdef _DEBUG_MODE_RAM
@@ -29,9 +32,32 @@ module cpu(
         assign dm_rd = controls[`CON_MEM_RD];
     `endif
     
+    /* TEMP Syscall Handle */
+    wire _syscall;
+    assign _syscall =
+        ((ins[`INS_RAW_OPCODE] == 6'b000000) && (ins[`INS_RAW_FUNCT] == `INS_R_SYSCALL)) ? 1'b1 :
+        1'b0;
+    wire [31:0] _syscall_reg_v0;
+    wire [31:0] _syscall_reg_a0;
+    reg [1:0] _syscall_pc_inc_mask;
+    always_ff @(posedge clk) begin
+        if(cpu_clr) begin
+            _syscall_pc_inc_mask <= 2'b00;
+        end
+        if(_syscall) begin
+            if(_syscall_reg_v0 == 32'd10) begin
+                _syscall_pc_inc_mask <= `PC_INC_STOP_OR_MASK;
+            end else begin
+                $display("SYSCALL: %h @ %0t", _syscall_reg_a0, $time);
+            end
+        end
+    end
+    /* !END TEMP Syscall Handle */
+    
     /* Global */
     reg clk;
     reg pc_clr;
+    reg cpu_clr;
     wire [31:0] imme_extented;
     assign imme_extented = 
         (controls[`CON_IMME_EXT] == `IMME_EXT_ZERO) ? {16'h0, ins[`INS_RAW_IMME]} :
@@ -60,16 +86,18 @@ module cpu(
     assign pc_branch_addr = imme_extented;
     // OUTPUT
     wire [31:0] current_pc;
+    wire [31:0] cycle_count;
     //// MODULE
     pc main_pc(
         .clk(clk),
         .clr(pc_clr),
         .last_pc(current_pc),
-        .pc_inc(controls[`CON_PC_INC]),
+        .pc_inc(controls[`CON_PC_INC] | _syscall_pc_inc_mask),
         .alu_branch_result(alu_branch_result),
         .abs_addr(pc_abs_addr),
         .branch_addr(pc_branch_addr),
-        .current_pc(current_pc)
+        .current_pc(current_pc),
+        .cycle_count(cycle_count)
     );
 
     /* Ins Memory */
@@ -137,7 +165,9 @@ module cpu(
         .write_en(controls[`CON_REG_WRITE_EN]),
         .clk(clk),
         .read1_data(reg_read1_data),
-        .read2_data(reg_read2_data)
+        .read2_data(reg_read2_data),
+        ._direct_out_v0(_syscall_reg_v0),
+        ._direct_out_a0(_syscall_reg_a0)
     );
 
     /* Arithmetic Logic Unit */
