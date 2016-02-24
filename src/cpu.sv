@@ -115,7 +115,7 @@ module cpu(
     assign reg_write_data =
         (controls[`CON_REG_WRITE_DATA] == `REG_WRITE_DATA_ALU) ? alu_result :
         (controls[`CON_REG_WRITE_DATA] == `REG_WRITE_DATA_DM) ? dm_read_data :
-        (controls[`CON_REG_WRITE_DATA] == `REG_WRITE_DATA_PC) ? current_pc :
+        (controls[`CON_REG_WRITE_DATA] == `REG_WRITE_DATA_PC) ? current_pc+1 :
         32'h0;
     // in control: controls
     // in global: clk
