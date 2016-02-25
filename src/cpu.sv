@@ -12,9 +12,28 @@
 `include "control.sv"
 
 module cpu(
+    `ifndef _DEBUG_MODE_CPU
+    input clk,
+    input pc_clr,
+    input cpu_clr,
+    output [31:0] display,
+    output [31:0] cycles,
+    output halt
+    `endif
     );
+    reg [31:0] display_reg;
+    reg halt_reg = 0;
+    `ifndef _DEBUG_MODE_CPU
+    assign display = display_reg;
+    assign cycles = cycle_count;
+    assign halt = halt_reg;
+    `endif
+
     /* Debug Sim */
     `ifdef _DEBUG_MODE_CPU
+        reg clk;
+        reg pc_clr;
+        reg cpu_clr;
         always #5 clk = ~clk;
         initial begin
             clk = 0;
@@ -46,18 +65,19 @@ module cpu(
         end
         if(_syscall) begin
             if(_syscall_reg_v0 == 32'd10) begin
+                halt_reg <= 1'b1;
                 _syscall_pc_inc_mask <= `PC_INC_STOP_OR_MASK;
             end else begin
+                display_reg <= _syscall_reg_a0;
                 $display("SYSCALL: %h @ %0t", _syscall_reg_a0, $time);
             end
+        end else begin
+                halt_reg <= 1'b0;
         end
     end
     /* !END TEMP Syscall Handle */
     
     /* Global */
-    reg clk;
-    reg pc_clr;
-    reg cpu_clr;
     wire [31:0] imme_extented;
     assign imme_extented = 
         (controls[`CON_IMME_EXT] == `IMME_EXT_ZERO) ? {16'h0, ins[`INS_RAW_IMME]} :
