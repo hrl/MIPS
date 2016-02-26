@@ -13,7 +13,7 @@ module pc(
     input clk,
     input clr, // set pc to 32'h0
     input [31:0] last_pc,
-    input [1:0] pc_inc, // 00: pc += 1; 01: pc += 1 + imme; 10: pc = reg/imme
+    input [1:0] pc_inc, // 00: pc += 1; 01: pc += 1 + imme; 10: pc = reg/imme, 11: halt
     input alu_branch_result, // 0: normal; 1: branch
     input [31:0] abs_addr,
     input [31:0] branch_addr,
