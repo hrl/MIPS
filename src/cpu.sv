@@ -123,8 +123,8 @@ module cpu(
     /* Ins Memory */
     //// VAR
     // INPUT
-    wire [7:0] ins_addr;
-    assign ins_addr = current_pc[7:0];
+    wire [15:0] ins_addr;
+    assign ins_addr = current_pc[15:0];
     // OUTPUT
     wire [31:0] ins;
     //// MODULE
