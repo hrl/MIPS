@@ -8,7 +8,8 @@
 `include "regfile.sv"
 `include "rom.sv"
 `include "ram.sv"
-`include "pc.sv"
+`include "pc_calculator.sv"
+`include "pc_ff.sv"
 `include "control.sv"
 
 module cpu(
@@ -86,36 +87,23 @@ module cpu(
     wire [31:0] shamt_extented;
     assign shamt_extented = {27'h0, ins[`INS_RAW_SHAMT]};
 
-    /* Program Counter */
+    /* Program Counter Flip-Flop */
     //// VAR
     // INPUT
     // in global: clk
     // in global: pc_clr
+    wire [31:0] pc_ff_next_pc;
+    assign pc_ff_next_pc = next_pc;
     // in control: controls
-    wire alu_branch_result;
-    assign alu_branch_result =
-        (controls[`CON_ALU_BRANCH] == `ALU_BRANCH_BEQ) ? alu_zero :
-        (controls[`CON_ALU_BRANCH] == `ALU_BRANCH_BNE) ? !alu_zero :
-        1'h0;
-    wire [31:0] pc_abs_addr;
-    assign pc_abs_addr =
-        (controls[`CON_PC_JUMP] == `PC_JUMP_IMME) ? imme_extented :
-        (controls[`CON_PC_JUMP] == `PC_JUMP_REG) ? reg_read1_data :
-        32'h0;
-    wire [31:0] pc_branch_addr;
-    assign pc_branch_addr = imme_extented;
     // OUTPUT
     wire [31:0] current_pc;
     wire [31:0] cycle_count;
     //// MODULE
-    pc main_pc(
+    pc_ff main_pc_ff(
         .clk(clk),
         .clr(pc_clr),
-        .last_pc(current_pc),
+        .next_pc(pc_ff_next_pc),
         .pc_inc(controls[`CON_PC_INC] | _syscall_pc_inc_mask),
-        .alu_branch_result(alu_branch_result),
-        .abs_addr(pc_abs_addr),
-        .branch_addr(pc_branch_addr),
         .current_pc(current_pc),
         .cycle_count(cycle_count)
     );
@@ -215,6 +203,36 @@ module cpu(
         .b(alu_b),
         .result(alu_result),
         .zero(alu_zero)
+    );
+
+    /* Program Counter Calculator */
+    //// VAR
+    // INPUT
+    // in global: pc_clr
+    // in control: controls
+    // in pc_ff: current_pc
+    wire alu_branch_result;
+    assign alu_branch_result =
+        (controls[`CON_ALU_BRANCH] == `ALU_BRANCH_BEQ) ? alu_zero :
+        (controls[`CON_ALU_BRANCH] == `ALU_BRANCH_BNE) ? !alu_zero :
+        1'h0;
+    wire [31:0] pc_abs_addr;
+    assign pc_abs_addr =
+        (controls[`CON_PC_JUMP] == `PC_JUMP_IMME) ? imme_extented :
+        (controls[`CON_PC_JUMP] == `PC_JUMP_REG) ? reg_read1_data :
+        32'h0;
+    wire [31:0] pc_branch_addr;
+    assign pc_branch_addr = imme_extented;
+    // OUTPUT
+    wire [31:0] next_pc;
+    //// MODULE
+    pc_calculator main_pc_calculator(
+        .last_pc(current_pc),
+        .pc_inc(controls[`CON_PC_INC] | _syscall_pc_inc_mask),
+        .alu_branch_result(alu_branch_result),
+        .abs_addr(pc_abs_addr),
+        .branch_addr(pc_branch_addr),
+        .next_pc(next_pc)
     );
 
     /* Data Memory */

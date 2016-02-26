@@ -1,6 +1,7 @@
 `timescale 1ns / 1ps
 
-`include "pc.sv"
+`include "pc_calculator.sv"
+`include "pc_ff.sv"
 `include "defines.vh"
 
 module pc_tb;
@@ -12,6 +13,7 @@ module pc_tb;
     reg [31:0] branch_addr;
     wire [31:0] current_pc;
     wire [31:0] last_pc;
+    wire [31:0] next_pc;
 
     assign last_pc = current_pc;
 
@@ -20,14 +22,19 @@ module pc_tb;
     integer fd, cont, dummy, error_count;
     reg [100*8-1:0] str;
 
-    pc pc(
-        .clk(clk),
-        .clr(clr),
+    pc_calculator main_pc_calculator(
         .last_pc(last_pc),
         .pc_inc(pc_inc),
         .alu_branch_result(alu_branch_result),
         .abs_addr(abs_addr),
         .branch_addr(branch_addr),
+        .next_pc(next_pc)
+    );
+    pc_ff main_pc_ff(
+        .clk(clk),
+        .clr(clr),
+        .next_pc(next_pc),
+        .pc_inc(pc_inc),
         .current_pc(current_pc)
     );
 
