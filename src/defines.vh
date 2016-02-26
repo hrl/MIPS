@@ -203,3 +203,9 @@
 `endif
 
 `endif
+
+//// CP0
+// REG
+`define CP0_REG_STATUS_IM 15:8
+`define CP0_REG_STATUS_IE  0:0
+`define CP0_INT_BASE 32'h00008000

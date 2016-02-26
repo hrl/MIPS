@@ -1,0 +1,26 @@
+# cp0 testbench data file
+# current_pc hardware_interrupt eret pc_jump pc_addr writeback_mask epc interrupt
+# data read @negedge
+# data check @posedge #1
+# skip
+00000000 00000000 0 0 00000000 1 0
+# raise interrupt 2
+00000000 00000100 0 0 00000000 1 0
+# push current_pc; pc_addr == 0x00008002; interrupt == 1;
+00000011 00000100 0 1 00008002 0 1
+# raise interrupt 1; interrupt == 0
+00008002 00000010 0 0 00008002 1 0
+# ignore interrupt 1; interrupt == 0
+00008090 00000010 0 0 00008002 1 0
+# raise interrupt 3; interrupt == 0
+00008091 00001010 0 0 00008002 1 0
+# push current_pc; pc_addr == 0x00008011; interrupt == 1;
+00008092 00000010 0 1 00008003 0 1
+# eret; pop epc; interrupt == 0;
+00008011 00000010 1 1 00008092 1 0
+# eret; pop epc; interrupt == 0;
+00008092 00000010 1 1 00000011 1 0
+# push current_pc; pc_addr == 0x00008001; interrupt == 1;
+00000011 00000000 0 1 00008001 0 1
+# eret; pop epc; interrupt == 0;
+00008011 00000000 1 1 00000011 1 0
