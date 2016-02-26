@@ -233,7 +233,7 @@ module cpu(
     //// MODULE
     pc_calculator main_pc_calculator(
         .last_pc(current_pc),
-        .pc_inc(controls[`CON_PC_INC] | _syscall_pc_inc_mask),
+        .pc_inc(cp0_pc_jump ? `PC_INC_JUMP : controls[`CON_PC_INC] | _syscall_pc_inc_mask),
         .alu_branch_result(alu_branch_result),
         .abs_addr(pc_abs_addr),
         .branch_addr(pc_branch_addr),
