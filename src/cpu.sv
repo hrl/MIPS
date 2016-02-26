@@ -11,6 +11,7 @@
 `include "pc_calculator.sv"
 `include "pc_ff.sv"
 `include "control.sv"
+`include "cp0.sv"
 
 module cpu(
     `ifndef _DEBUG_MODE_CPU
@@ -161,6 +162,9 @@ module cpu(
         32'h0;
     // in control: controls
     // in global: clk
+    // make simulator happy
+    wire _cp0_writeback_mask;
+    assign _cp0_writeback_mask = cp0_writeback_mask;
     // OUTPUT
     wire [31:0] reg_read1_data;
     wire [31:0] reg_read2_data;
@@ -170,7 +174,7 @@ module cpu(
         .read2_num(reg_read2_num),
         .write_num(reg_write_num),
         .write_data(reg_write_data),
-        .write_en(controls[`CON_REG_WRITE_EN]),
+        .write_en(controls[`CON_REG_WRITE_EN] & _cp0_writeback_mask),
         .clk(clk),
         .read1_data(reg_read1_data),
         .read2_data(reg_read2_data),
@@ -218,6 +222,7 @@ module cpu(
         1'h0;
     wire [31:0] pc_abs_addr;
     assign pc_abs_addr =
+        (cp0_pc_jump == 1'b1) ? cp0_pc_addr :
         (controls[`CON_PC_JUMP] == `PC_JUMP_IMME) ? imme_extented :
         (controls[`CON_PC_JUMP] == `PC_JUMP_REG) ? reg_read1_data :
         32'h0;
@@ -235,6 +240,36 @@ module cpu(
         .next_pc(next_pc)
     );
 
+    /* Coprocessor 0 */
+    //// VAR
+    // INPUT
+    // in global: clk
+    // in global: cpu_clr
+    // in pc_ff: current_pc
+    wire [7:0] hardware_interrupt;
+    wire eret;
+    // OUTPUT
+    wire cp0_pc_jump;
+    wire [31:0] cp0_pc_addr;
+    wire cp0_writeback_mask;
+    wire [31:0] cp0_status;
+    wire [31:0] cp0_epc;
+    wire cp0_interrupt;
+    //// MODULE
+    cp0 main_cp0(
+        .clk(clk),
+        .clr(cpu_clr),
+        .current_pc(current_pc),
+        .hardware_interrupt(hardware_interrupt),
+        .eret(eret),
+        .pc_jump(cp0_pc_jump),
+        .pc_addr(cp0_pc_addr),
+        .writeback_mask(cp0_writeback_mask),
+        .status(cp0_status),
+        .epc(cp0_epc),
+        .interrupt(cp0_interrupt)
+    );
+
     /* Data Memory */
     //// VAR
     // INPUT
@@ -249,7 +284,7 @@ module cpu(
     //// module
     ram data_memory(
         .addr(dm_addr),
-        .cs(controls[`CON_MEM_CS]),
+        .cs(controls[`CON_MEM_CS] & cp0_writeback_mask),
         .rd(controls[`CON_MEM_RD]),
         .oe(controls[`CON_MEM_RD]), // same as rd
         .clk(clk),
