@@ -99,44 +99,6 @@ module cp0(
     reg [31:0] reg_status;
     assign status = reg_status;
 
-    /* DEBUG */
-    /*
-    reg clk;
-    reg clr;
-    reg [31:0] current_pc;
-    reg [7:0] hardware_interrupt;
-    reg eret;
-    always #5 clk = ~clk;
-    initial begin
-       clk = 0;
-       clr = 1;
-       current_pc = 32'h11111111;
-       hardware_interrupt = 8'b00000000;
-       eret = 1'b0;
-       #10;
-       clr = 0;
-       @(posedge clk);
-       hardware_interrupt[2] = 1'b1;
-       @(posedge clk);
-       hardware_interrupt[0] = 1'b1;
-       @(posedge clk);
-       hardware_interrupt[3] = 1'b1;
-       @(posedge clk);
-       hardware_interrupt[4] = 1'b1;
-       @(posedge clk);
-       hardware_interrupt[4:2] = 3'b0;
-       @(negedge clk);
-       eret =1'b1;
-       @(negedge clk);
-       eret =1'b1;
-       @(negedge clk);
-       eret =1'b1;
-       @(negedge clk);
-       eret =1'b0;
-    end
-    */
-    /* END DEBUG */
-
     // stack frames
     reg [31:0] reg_epc [7:0]; // stacked epc
     reg [7:0] reg_mask [7:0]; // stacked mask
