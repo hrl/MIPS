@@ -19,6 +19,7 @@
 `define INS_RAW_IMME   15:0
 `define INS_RAW_ADDR   25:0
 `define INS_RAW_IMME_SIGN 15
+`define INS_RAW_CO     25:25
 
 // TYPE R
 // opcode == 6'b000000
@@ -60,7 +61,8 @@
 // match rs
 `define INS_C_MFC0    5'b00000
 `define INS_C_MTC0    5'b00100
-// eret here
+// match {co, funct}
+`define INS_C_ERET    7'b1011000
 // ...
 
 //// !END INSTRUCTION SET
@@ -97,7 +99,7 @@
 
 //// INS MEM
 `define PROGRAM_FILE "program.txt"
-`define EXCEPTION_FILE "program.txt"
+`define EXCEPTION_FILE "exception.txt"
 
 //// DATA MEM
 `define MEM_CS_DISABLE 1'b0
@@ -142,6 +144,7 @@
 `define REG_WRITE_DATA_ALU 2'b00
 `define REG_WRITE_DATA_DM  2'b01
 `define REG_WRITE_DATA_PC  2'b10
+`define REG_WRITE_DATA_CP0 2'b11
 
 `ifdef _DEBUG_MODE_MASK_X_VALUE
 `define REG_READ1_NUM_X  1'b0

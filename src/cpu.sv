@@ -46,6 +46,10 @@ module cpu(
             #10;
             pc_clr = 0;
             cpu_clr = 0;
+            #100;
+            hardware_interrupt[0] = 1'b1;
+            #10;
+            hardware_interrupt[0] = 1'b0;
         end
     `endif
     `ifdef _DEBUG_MODE_RAM
@@ -131,10 +135,12 @@ module cpu(
     // in im: ins
     // OUTPUT
     wire [`CON_MSB:`CON_LSB] controls;
+    wire eret;
     //// MODULE
     control main_control(
         .ins(ins),
-        .controls(controls)
+        .controls(controls),
+        .eret(eret)
     );
 
     /* Register File */
@@ -161,6 +167,7 @@ module cpu(
         (controls[`CON_REG_WRITE_DATA] == `REG_WRITE_DATA_ALU) ? alu_result :
         (controls[`CON_REG_WRITE_DATA] == `REG_WRITE_DATA_DM) ? dm_read_data :
         (controls[`CON_REG_WRITE_DATA] == `REG_WRITE_DATA_PC) ? current_pc+1 :
+        (controls[`CON_REG_WRITE_DATA] == `REG_WRITE_DATA_PC) ? cp0_read_data :
         32'h0;
     // in control: controls
     // in global: clk
@@ -251,8 +258,9 @@ module cpu(
     // in global: cpu_clr
     // in pc_ff: current_pc
     // in global: hardware_interrupt;
-    wire eret;
+    // in control: eret;
     // OUTPUT
+    wire [31:0] cp0_read_data;
     wire cp0_pc_jump;
     wire [31:0] cp0_pc_addr;
     wire cp0_writeback_mask;
