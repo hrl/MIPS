@@ -146,6 +146,8 @@ module cp0(
                 8'b11111110: _interrupt = |(hardware_interrupt[7:1]);
                 default: _interrupt = |(hardware_interrupt[7:0]);
             endcase
+        end else begin
+            _interrupt = 1'b0;
         end
     end
 
