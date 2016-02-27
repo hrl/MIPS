@@ -36,11 +36,13 @@ module cpu(
         reg clk;
         reg pc_clr;
         reg cpu_clr;
+        reg [7:0] hardware_interrupt;
         always #5 clk = ~clk;
         initial begin
             clk = 0;
             pc_clr = 1;
             cpu_clr = 1;
+            hardware_interrupt = 8'h0;
             #10;
             pc_clr = 0;
             cpu_clr = 0;
@@ -65,7 +67,7 @@ module cpu(
         if(cpu_clr) begin
             _syscall_pc_inc_mask <= 2'b00;
         end
-        if(_syscall) begin
+        if(_syscall && !cp0_interrupt) begin
             if(_syscall_reg_v0 == 32'd10) begin
                 halt_reg <= 1'b1;
                 _syscall_pc_inc_mask <= `PC_INC_STOP_OR_MASK;
@@ -215,6 +217,8 @@ module cpu(
     // in global: pc_clr
     // in control: controls
     // in pc_ff: current_pc
+    wire _cp0_pc_jump;
+    assign _cp0_pc_jump = cp0_pc_jump;
     wire alu_branch_result;
     assign alu_branch_result =
         (controls[`CON_ALU_BRANCH] == `ALU_BRANCH_BEQ) ? alu_zero :
@@ -233,7 +237,7 @@ module cpu(
     //// MODULE
     pc_calculator main_pc_calculator(
         .last_pc(current_pc),
-        .pc_inc(cp0_pc_jump ? `PC_INC_JUMP : controls[`CON_PC_INC] | _syscall_pc_inc_mask),
+        .pc_inc(_cp0_pc_jump ? `PC_INC_JUMP : controls[`CON_PC_INC] | _syscall_pc_inc_mask),
         .alu_branch_result(alu_branch_result),
         .abs_addr(pc_abs_addr),
         .branch_addr(pc_branch_addr),
@@ -246,7 +250,7 @@ module cpu(
     // in global: clk
     // in global: cpu_clr
     // in pc_ff: current_pc
-    wire [7:0] hardware_interrupt;
+    // in global: hardware_interrupt;
     wire eret;
     // OUTPUT
     wire cp0_pc_jump;
