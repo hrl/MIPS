@@ -4,259 +4,212 @@
 `timescale 1ns / 1ps
 
 `include "defines.vh"
-`include "alu.sv"
-`include "regfile.sv"
-`include "rom.sv"
-`include "ram.sv"
-`include "pc_calculator.sv"
-`include "pc_ff.sv"
-`include "control.sv"
+`include "cpu_if.sv"
+`include "cpu_id_wb.sv"
+`include "cpu_ex.sv"
+`include "cpu_mem.sv"
 
 module cpu(
     `ifndef _DEBUG_MODE_CPU
     input clk,
-    input pc_clr,
-    input cpu_clr,
+    input clr,
+    `endif
+    output [31:0] cycle_count,
     output [31:0] display,
-    output [31:0] cycles,
     output halt
-    `endif
     );
-    reg [31:0] display_reg;
-    reg halt_reg = 0;
-    `ifndef _DEBUG_MODE_CPU
-    assign display = display_reg;
-    assign cycles = cycle_count;
-    assign halt = halt_reg;
-    `endif
+    /* Wire Defines */
+    // Stage IF->ID 
+    wire [31:0] current_pc_if;
+    wire [31:0] ins_if;
+    wire [31:0] cycle_count_if;
+    // Stage ID->EX
+    wire [31:0] current_pc_id;
+    wire [31:0] ins_id;
+    wire [`CON_MSB:`CON_LSB] controls_id;
+    wire [31:0] reg_read1_data_id;
+    wire [31:0] reg_read2_data_id;
+    wire [31:0] _syscall_reg_v0_id;
+    wire [31:0] _syscall_reg_a0_id;
+    // Stage EX->MEM
+    wire [31:0] current_pc_ex;
+    wire [31:0] ins_ex;
+    wire [`CON_MSB:`CON_LSB] controls_ex;
+    wire [31:0] reg_read2_data_ex;
+    wire [31:0] alu_result_ex;
+    wire  alu_zero_ex;
+    wire [31:0] next_pc_ex;
+    wire [1:0] pc_inc_ex;
+    wire [31:0] _syscall_display_ex;
+    // Stage MEM->WB
+    wire [31:0] dm_read_data_mem;
+    wire reg_write_en_mem;
+    wire [4:0] reg_write_num_mem;
+    wire [31:0] reg_write_data_mem;
+    /* !END Wire Defines */
+
+    /* Global */
+    assign cycle_count = cycle_count_if;
+    assign display = _syscall_display_ex;
+    assign halt = halt_if;
 
     /* Debug Sim */
     `ifdef _DEBUG_MODE_CPU
         reg clk;
-        reg pc_clr;
-        reg cpu_clr;
+        reg clr;
         always #5 clk = ~clk;
         initial begin
             clk = 0;
-            pc_clr = 1;
-            cpu_clr = 1;
+            clr = 1;
             #10;
-            pc_clr = 0;
-            cpu_clr = 0;
+            clr = 0;
+        end
+        always_ff @(posedge clk iff halt) begin
+            $display("HALT, cycle_count: %d", cycle_count-1);
+            $finish;
         end
     `endif
-    `ifdef _DEBUG_MODE_RAM
-        wire dm_cs;
-        wire dm_rd;
-        assign dm_cs = controls[`CON_MEM_CS];
-        assign dm_rd = controls[`CON_MEM_RD];
-    `endif
     
-    /* TEMP Syscall Handle */
-    wire _syscall;
-    assign _syscall =
-        ((ins[`INS_RAW_OPCODE] == 6'b000000) && (ins[`INS_RAW_FUNCT] == `INS_R_SYSCALL)) ? 1'b1 :
-        1'b0;
-    wire [31:0] _syscall_reg_v0;
-    wire [31:0] _syscall_reg_a0;
-    reg [1:0] _syscall_pc_inc_mask;
-    always_ff @(posedge clk) begin
-        if(cpu_clr) begin
-            _syscall_pc_inc_mask <= 2'b00;
-        end
-        if(_syscall) begin
-            if(_syscall_reg_v0 == 32'd10) begin
-                halt_reg <= 1'b1;
-                _syscall_pc_inc_mask <= `PC_INC_STOP_OR_MASK;
-            end else begin
-                display_reg <= _syscall_reg_a0;
-                $display("SYSCALL: %h @ %0t", _syscall_reg_a0, $time);
-            end
-        end else begin
-                halt_reg <= 1'b0;
-        end
-    end
-    /* !END TEMP Syscall Handle */
-    
-    /* Global */
-    wire [31:0] imme_extented;
-    assign imme_extented = 
-        (controls[`CON_IMME_EXT] == `IMME_EXT_ZERO) ? {16'h0, ins[`INS_RAW_IMME]} :
-        (controls[`CON_IMME_EXT] == `IMME_EXT_SIGN) ? {(ins[`INS_RAW_IMME_SIGN] == 1'b0) ? 16'h0000: 16'hffff, ins[`INS_RAW_IMME]} :
-        32'h0;
-    wire [31:0] shamt_extented;
-    assign shamt_extented = {27'h0, ins[`INS_RAW_SHAMT]};
-
-    /* Program Counter Flip-Flop */
     //// VAR
     // INPUT
     // in global: clk
-    // in global: pc_clr
-    wire [31:0] pc_ff_next_pc;
-    assign pc_ff_next_pc = next_pc;
-    // in control: controls
+    // in global: clr
+    // in ex: pc_inc_ex
+    // in ex: next_pc_ex
     // OUTPUT
-    wire [31:0] current_pc;
-    wire [31:0] cycle_count;
+    // wire [31:0] current_pc_if;
+    // wire [31:0] ins_if;
+    // wire [31:0] cycle_count_if;
+    // wire halt_if;
+    wire [31:0] _debug_current_pc_if;
+    wire [31:0] _debug_ins_if;
+    wire [31:0] _debug_cycle_count_if;
     //// MODULE
-    pc_ff main_pc_ff(
+    cpu_if stage_if(
         .clk(clk),
-        .clr(pc_clr),
-        .next_pc(pc_ff_next_pc),
-        .pc_inc(controls[`CON_PC_INC] | _syscall_pc_inc_mask),
-        .current_pc(current_pc),
-        .cycle_count(cycle_count)
+        .clr(clr),
+        .pc_inc(pc_inc_ex),
+        .next_pc(next_pc_ex),
+        .current_pc(current_pc_if),
+        .ins(ins_if),
+        .cycle_count(cycle_count_if),
+        .halt(halt_if),
+        ._debug_current_pc(_debug_current_pc_if),
+        ._debug_ins(_debug_ins_if),
+        ._debug_cycle_count(_debug_cycle_count_if)
     );
 
-    /* Ins Memory */
+    /* Stage ID & WB */
     //// VAR
     // INPUT
-    wire [15:0] ins_addr;
-    assign ins_addr = current_pc[15:0];
-    // OUTPUT
-    wire [31:0] ins;
-    //// MODULE
-    rom ins_memory(
-        .addr(ins_addr),
-        .cs(1),
-        .read_data(ins)
-    );
-
-    /* Control */
-    //// VAR
-    // INPUT
-    // in im: ins
-    // OUTPUT
-    wire [`CON_MSB:`CON_LSB] controls;
-    //// MODULE
-    control main_control(
-        .ins(ins),
-        .controls(controls)
-    );
-
-    /* Register File */
-    //// VAR
-    // INPUT
-    wire [4:0] reg_read1_num;
-    assign reg_read1_num =
-        (controls[`CON_REG_READ1_NUM] == `REG_READ1_NUM_RS) ? ins[`INS_RAW_RS] :
-        (controls[`CON_REG_READ1_NUM] == `REG_READ1_NUM_RT) ? ins[`INS_RAW_RT] :
-        5'h0;
-    wire [4:0] reg_read2_num;
-    assign reg_read2_num =
-        (controls[`CON_REG_READ2_NUM] == `REG_READ2_NUM_RS) ? ins[`INS_RAW_RS] :
-        (controls[`CON_REG_READ2_NUM] == `REG_READ2_NUM_RT) ? ins[`INS_RAW_RT] :
-        5'h0;
-    wire [4:0] reg_write_num;
-    assign reg_write_num =
-        (controls[`CON_REG_WRITE_NUM] == `REG_WRITE_NUM_RT) ? ins[`INS_RAW_RT] :
-        (controls[`CON_REG_WRITE_NUM] == `REG_WRITE_NUM_RD) ? ins[`INS_RAW_RD] :
-        (controls[`CON_REG_WRITE_NUM] == `REG_WRITE_NUM_31) ? 5'h1f :
-        5'h0;
-    wire [31:0] reg_write_data;
-    assign reg_write_data =
-        (controls[`CON_REG_WRITE_DATA] == `REG_WRITE_DATA_ALU) ? alu_result :
-        (controls[`CON_REG_WRITE_DATA] == `REG_WRITE_DATA_DM) ? dm_read_data :
-        (controls[`CON_REG_WRITE_DATA] == `REG_WRITE_DATA_PC) ? current_pc+1 :
-        32'h0;
-    // in control: controls
     // in global: clk
+    // in global: clr
+    // in if: current_pc_if
+    // in if: ins_if
+    // in mem: reg_write_en_mem
+    // in mem: reg_write_num_mem
+    // in mem: reg_write_data_mem
     // OUTPUT
-    wire [31:0] reg_read1_data;
-    wire [31:0] reg_read2_data;
+    // wire [31:0] current_pc_id;
+    // wire [31:0] ins_id;
+    // wire [`CON_MSB:`CON_LSB] controls_id;
+    // wire [31:0] reg_read1_data_id;
+    // wire [31:0] reg_read2_data_id;
+    // wire [31:0] _syscall_reg_v0_id;
+    // wire [31:0] _syscall_reg_a0_id;
     //// MODULE
-    regfile main_regfile(
-        .read1_num(reg_read1_num),
-        .read2_num(reg_read2_num),
-        .write_num(reg_write_num),
-        .write_data(reg_write_data),
-        .write_en(controls[`CON_REG_WRITE_EN]),
+    cpu_id_wb stage_id_wb(
         .clk(clk),
-        .read1_data(reg_read1_data),
-        .read2_data(reg_read2_data),
-        ._direct_out_v0(_syscall_reg_v0),
-        ._direct_out_a0(_syscall_reg_a0)
+        .clr(clr),
+        .current_pc(current_pc_if),
+        .ins(ins_if),
+        .reg_write_en(reg_write_en_mem),
+        .reg_write_num(reg_write_num_mem),
+        .reg_write_data(reg_write_data_mem),
+        .current_pc_id(current_pc_id),
+        .ins_id(ins_id),
+        .controls(controls_id),
+        .reg_read1_data(reg_read1_data_id),
+        .reg_read2_data(reg_read2_data_id),
+        ._direct_out_v0(_syscall_reg_v0_id),
+        ._direct_out_a0(_syscall_reg_a0_id)
     );
 
-    /* Arithmetic Logic Unit */
+    /* Stage EX */
     //// VAR
     // INPUT
-    // in control: controls
-    wire [31:0] alu_a;
-    assign alu_a =
-        (controls[`CON_ALU_A] == `ALU_A_REG) ? reg_read1_data:
-        (controls[`CON_ALU_A] == `ALU_A_IMME) ? imme_extented:
-        32'h0;
-    wire [31:0] alu_b;
-    assign alu_b =
-        (controls[`CON_ALU_B] == `ALU_B_REG) ? reg_read2_data:
-        (controls[`CON_ALU_B] == `ALU_B_IMME) ? imme_extented:
-        (controls[`CON_ALU_B] == `ALU_B_SHAMT) ? shamt_extented:
-        32'h0;
-    // OUTPUT
-    wire [31:0] alu_result;
-    wire alu_zero;
-    //// MODULE
-    alu main_alu(
-        .op(controls[`CON_ALU_OP]),
-        .a(alu_a),
-        .b(alu_b),
-        .result(alu_result),
-        .zero(alu_zero)
-    );
-
-    /* Program Counter Calculator */
-    //// VAR
-    // INPUT
-    // in global: pc_clr
-    // in control: controls
-    // in pc_ff: current_pc
-    wire alu_branch_result;
-    assign alu_branch_result =
-        (controls[`CON_ALU_BRANCH] == `ALU_BRANCH_BEQ) ? alu_zero :
-        (controls[`CON_ALU_BRANCH] == `ALU_BRANCH_BNE) ? !alu_zero :
-        1'h0;
-    wire [31:0] pc_abs_addr;
-    assign pc_abs_addr =
-        (controls[`CON_PC_JUMP] == `PC_JUMP_IMME) ? imme_extented :
-        (controls[`CON_PC_JUMP] == `PC_JUMP_REG) ? reg_read1_data :
-        32'h0;
-    wire [31:0] pc_branch_addr;
-    assign pc_branch_addr = imme_extented;
-    // OUTPUT
-    wire [31:0] next_pc;
-    //// MODULE
-    pc_calculator main_pc_calculator(
-        .last_pc(current_pc),
-        .pc_inc(controls[`CON_PC_INC] | _syscall_pc_inc_mask),
-        .alu_branch_result(alu_branch_result),
-        .abs_addr(pc_abs_addr),
-        .branch_addr(pc_branch_addr),
-        .next_pc(next_pc)
-    );
-
-    /* Data Memory */
-    //// VAR
-    // INPUT
-    wire [7:0] dm_addr;
-    assign dm_addr = alu_result[9:2]; // ignore low bits
-    // in control: controls
     // in global: clk
-    wire [31:0] dm_write_data;
-    assign dm_write_data = reg_read2_data;
+    // in global: clr
+    // in id: current_pc_id
+    // in id: ins_id
+    // in id: controls_id
+    // in id: reg_read1_data_id
+    // in id: reg_read2_data_id
     // OUTPUT
-    wire [31:0] dm_read_data;
-    //// module
-    ram data_memory(
-        .addr(dm_addr),
-        .cs(controls[`CON_MEM_CS]),
-        .rd(controls[`CON_MEM_RD]),
-        .oe(controls[`CON_MEM_RD]), // same as rd
+    // wire [31:0] current_pc_ex;
+    // wire [31:0] ins_ex;
+    // wire [`CON_MSB:`CON_LSB] controls_ex;
+    // wire [31:0] reg_read2_data_ex;
+    // wire [31:0] alu_result_ex;
+    // wire  alu_zero_ex;
+    // wire [31:0] next_pc_ex;
+    // wire [1:0] pc_inc_ex;
+    // wire [31:0] _syscall_display_ex;
+    wire _debug_syscall;
+    wire [1:0] _debug_syscall_pc_inc_mask;
+    //// MODULE
+    cpu_ex stage_ex(
         .clk(clk),
-        .write_data(dm_write_data),
-        .read_data(dm_read_data)
+        .clr(clr),
+        .current_pc(current_pc_id),
+        .ins(ins_id),
+        .controls(controls_id),
+        .reg_read1_data(reg_read1_data_id),
+        .reg_read2_data(reg_read2_data_id),
+        .current_pc_ex(current_pc_ex),
+        .ins_ex(ins_ex),
+        .controls_ex(controls_ex),
+        .reg_read2_data_ex(reg_read2_data_ex),
+        .alu_result(alu_result_ex),
+        .alu_zero(alu_zero_ex),
+        .next_pc(next_pc_ex),
+        .pc_inc(pc_inc_ex),
+        ._syscall_reg_v0(_syscall_reg_v0_id),
+        ._syscall_reg_a0(_syscall_reg_a0_id),
+        ._syscall_display(_syscall_display_ex),
+        ._debug_syscall(_debug_syscall),
+        ._debug_syscall_pc_inc_mask(_debug_syscall_pc_inc_mask)
     );
-    
+
+    /* Stage MEM */
+    //// VAR
+    // INPUT
+    // in global: clk
+    // in global: clr
+    // in ex: current_pc_ex
+    // in ex: ins_ex
+    // in ex: controls_ex
+    // in ex: reg_read2_data_ex
+    // in ex: alu_result_ex
+    // OUTPUT
+    // wire [31:0] dm_read_data_mem;
+    // wire reg_write_en_mem;
+    // wire [4:0] reg_write_num_mem;
+    // wire [31:0] reg_write_data_mem;
+    //// MODULE
+    cpu_mem stage_mem(
+        .clk(clk),
+        .clr(clr),
+        .current_pc(current_pc_ex),
+        .ins(ins_ex),
+        .controls(controls_ex),
+        .reg_read2_data(reg_read2_data_ex),
+        .alu_result(alu_result_ex),
+        .dm_read_data(dm_read_data_mem),
+        .reg_write_en(reg_write_en_mem),
+        .reg_write_num(reg_write_num_mem),
+        .reg_write_data(reg_write_data_mem)
+    );
 endmodule
 
 `endif

@@ -12,9 +12,9 @@ module cpu_id_wb(
     input clr, // from global
     input [31:0] current_pc, // from IF
     input [31:0] ins, // from IF
-    input wb_reg_write_en, // from MEM
-    input [4:0] wb_reg_write_num, // from MEM
-    input [31:0] wb_reg_write_data, // from MEM
+    input reg_write_en, // from MEM
+    input [4:0] reg_write_num, // from MEM
+    input [31:0] reg_write_data, // from MEM
     output reg [31:0] current_pc_id, // latch
     output reg [31:0] ins_id, // latch
     output reg [`CON_MSB:`CON_LSB] controls,
@@ -56,9 +56,9 @@ module cpu_id_wb(
     regfile main_regfile(
         .read1_num(reg_read1_num),
         .read2_num(reg_read2_num),
-        .write_num(wb_reg_write_num),
-        .write_data(wb_reg_write_data),
-        .write_en(wb_reg_write_en),
+        .write_num(reg_write_num),
+        .write_data(reg_write_data),
+        .write_en(reg_write_en),
         .clk(clk),
         .read1_data(_reg_read1_data),
         .read2_data(_reg_read2_data),

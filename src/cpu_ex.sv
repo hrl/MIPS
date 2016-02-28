@@ -5,6 +5,7 @@
 
 `include "defines.vh"
 `include "alu.sv"
+`include "pc_calculator.sv"
 
 module cpu_ex(
     input clk, // from global
@@ -20,8 +21,16 @@ module cpu_ex(
     output reg [31:0] reg_read2_data_ex, // latch
     output reg [31:0] alu_result,
     output reg alu_zero,
-    output reg [31:0] next_pc
+    output reg [31:0] next_pc,
+    output reg [1:0] pc_inc,
+    input [31:0] _syscall_reg_v0,
+    input [31:0] _syscall_reg_a0,
+    output reg [31:0] _syscall_display,
+    output _debug_syscall,
+    output [1:0] _debug_syscall_pc_inc_mask
     );
+    assign _debug_syscall = _syscall;
+    assign _debug_syscall_pc_inc_mask = _syscall_pc_inc_mask;
 
     wire [31:0] imme_extented;
     assign imme_extented = 
@@ -76,18 +85,41 @@ module cpu_ex(
         32'h0;
     wire [31:0] pc_branch_addr;
     assign pc_branch_addr = imme_extented;
+    wire [1:0] _pc_inc;
+    assign _pc_inc = controls[`CON_PC_INC] | _syscall_pc_inc_mask;
     // OUTPUT
     wire [31:0] _next_pc;
     //// MODULE
     pc_calculator main_pc_calculator(
         .last_pc(current_pc),
-        .pc_inc(controls[`CON_PC_INC]),
+        .pc_inc(_pc_inc),
         .alu_branch_result(alu_branch_result),
         .abs_addr(pc_abs_addr),
         .branch_addr(pc_branch_addr),
         .next_pc(_next_pc)
     );
 
+    /* TEMP Syscall Handle */
+    wire _syscall;
+    assign _syscall =
+        ((ins[`INS_RAW_OPCODE] == 6'b000000) && (ins[`INS_RAW_FUNCT] == `INS_R_SYSCALL)) ? 1'b1 :
+        1'b0;
+    reg [1:0] _syscall_pc_inc_mask = 2'b00;
+    always_ff @(negedge clk) begin
+        if(clr) begin
+            _syscall_pc_inc_mask <= 2'b00;
+        end
+        if(_syscall) begin
+            if(_syscall_reg_v0 == 32'd10) begin
+                _syscall_pc_inc_mask <= `PC_INC_STOP_OR_MASK;
+            end else begin
+                _syscall_display <= _syscall_reg_a0;
+                $display("SYSCALL: %h @ %0t", _syscall_reg_a0, $time);
+            end
+        end
+    end
+    /* !END TEMP Syscall Handle */
+    
     always_ff @(posedge clk) begin
         if(clr) begin
             current_pc_ex <= 32'h00000000;
@@ -97,6 +129,7 @@ module cpu_ex(
             alu_result <= 32'h00000000;
             alu_zero <= 1'b0;
             next_pc <= 32'h00000000;
+            pc_inc <= 2'b00;
         end else begin
             current_pc_ex <= current_pc;
             controls_ex <= controls;
@@ -105,6 +138,7 @@ module cpu_ex(
             alu_result <= _alu_result;
             alu_zero <= _alu_zero;
             next_pc <= _next_pc;
+            pc_inc <= _pc_inc;
         end
     end
 endmodule
