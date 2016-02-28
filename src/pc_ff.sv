@@ -7,7 +7,7 @@ module pc_ff(
     input clk,
     input clr, // set pc to 32'h0
     input [31:0] next_pc,
-    input [1:0] pc_inc, // 00: pc += 1; 01: pc += 1 + imme; 10: pc = reg/imme, 11: halt
+    input [1:0] pc_inc, // 00: pc += 1; 01/10: pc = next_pc, 11: halt
     output reg [31:0] current_pc = 0,
     output reg [31:0] cycle_count = 0
     );
@@ -19,7 +19,11 @@ module pc_ff(
             cycle_count <= 32'h1;
             halt <= 1'b0;
         end else begin
-            current_pc <= next_pc;
+            if(pc_inc == `PC_INC_NORMAL) begin
+                current_pc <= current_pc+1;
+            end else begin
+                current_pc <= next_pc;
+            end
             if(pc_inc != `PC_INC_STOP && halt == 1'b0) begin
                 cycle_count <= cycle_count + 1;
             end else begin
