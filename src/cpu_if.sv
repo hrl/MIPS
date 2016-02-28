@@ -56,7 +56,7 @@ module cpu_if(
     //// MODULE
     rom ins_memory(
         .addr(ins_addr),
-        .cs(1),
+        .cs(1'b1),
         .read_data(_ins)
     );
 

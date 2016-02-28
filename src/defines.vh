@@ -2,11 +2,11 @@
 `define _defines
 
 //// DEBUG
-`define _DEBUG_MODE_CPU
+//`define _DEBUG_MODE_CPU
 //`define _DEBUG_MODE_CON
 //`define _DEBUG_MODE_RAM
 
-`define _DEBUG_MODE_MASK_X_VALUE
+//`define _DEBUG_MODE_MASK_X_VALUE
 
 //// INSTRUCTION SET
 // RAW INS

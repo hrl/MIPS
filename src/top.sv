@@ -36,11 +36,9 @@ module top(
     //// VAR
     // INPUT
     // in global: cpu_clk;
-    reg cpu_pc_clr = 1;
-    reg cpu_cpu_clr = 1;
+    reg cpu_clr = 1;
     always_ff @(negedge cpu_clk) begin
-        cpu_pc_clr <= 0;
-        cpu_cpu_clr <= 0;
+        cpu_clr <= 0;
     end
     // OUTPUT
     wire [31:0] cpu_display;
@@ -49,10 +47,9 @@ module top(
     //// MODULE
     cpu main_cpu(
         .clk(cpu_clk),
-        .pc_clr(cpu_pc_clr),
-        .cpu_clr(cpu_cpu_clr),
+        .clr(cpu_clr),
+        .cycle_count(cpu_cycles),
         .display(cpu_display),
-        .cycles(cpu_cycles),
         .halt(halt)
     );
 `endif
