@@ -18,6 +18,7 @@ module cpu(
     input clk,
     input pc_clr,
     input cpu_clr,
+    input [7:0] hardware_interrupt,
     output [31:0] display,
     output [31:0] cycles,
     output halt
@@ -46,7 +47,7 @@ module cpu(
             #10;
             pc_clr = 0;
             cpu_clr = 0;
-            #100;
+            #1000;
             hardware_interrupt[0] = 1'b1;
             #10;
             hardware_interrupt[0] = 1'b0;

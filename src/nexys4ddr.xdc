@@ -16,6 +16,10 @@ set_property PACKAGE_PIN T9 [get_ports {display_en[2]}]
 set_property PACKAGE_PIN J18 [get_ports {display_en[1]}]
 set_property PACKAGE_PIN J17 [get_ports {display_en[0]}]
 
+set_property PACKAGE_PIN M17 [get_ports {hardware_interrupt[2]}]
+set_property PACKAGE_PIN N17 [get_ports {hardware_interrupt[1]}]
+set_property PACKAGE_PIN P17 [get_ports {hardware_interrupt[0]}]
+
 set_property IOSTANDARD LVCMOS18 [get_ports clk]
 set_property IOSTANDARD LVCMOS18 [get_ports {display_data[7]}]
 set_property IOSTANDARD LVCMOS18 [get_ports {display_data[6]}]
@@ -33,5 +37,9 @@ set_property IOSTANDARD LVCMOS18 [get_ports {display_en[3]}]
 set_property IOSTANDARD LVCMOS18 [get_ports {display_en[2]}]
 set_property IOSTANDARD LVCMOS18 [get_ports {display_en[1]}]
 set_property IOSTANDARD LVCMOS18 [get_ports {display_en[0]}]
+
+set_property IOSTANDARD LVCMOS18 [get_ports {hardware_interrupt[2]}]
+set_property IOSTANDARD LVCMOS18 [get_ports {hardware_interrupt[1]}]
+set_property IOSTANDARD LVCMOS18 [get_ports {hardware_interrupt[0]}]
 
 create_clock -period 10.000 -name clk -waveform {0.000 5.000} [get_ports clk]

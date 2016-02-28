@@ -8,6 +8,7 @@
 
 module top(
     input clk,
+    input [2:0] hardware_interrupt,
     output [7:0] display_data,
     output [7:0] display_en
     );
@@ -51,6 +52,7 @@ module top(
         .clk(cpu_clk),
         .pc_clr(cpu_pc_clr),
         .cpu_clr(cpu_cpu_clr),
+        .hardware_interrupt({5'b0, hardware_interrupt}),
         .display(cpu_display),
         .cycles(cpu_cycles),
         .halt(halt)
