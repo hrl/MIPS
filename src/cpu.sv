@@ -70,6 +70,7 @@ module cpu(
         end
     `endif
     
+    /* Stage IF */
     //// VAR
     // INPUT
     // in global: clk
