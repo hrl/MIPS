@@ -4,6 +4,7 @@
 `timescale 1ns / 1ps
 
 `include "defines.vh"
+`include "cpu_hazard_unit.sv"
 `include "cpu_if.sv"
 `include "cpu_id_wb.sv"
 `include "cpu_ex.sv"
@@ -19,6 +20,13 @@ module cpu(
     output halt
     );
     /* Wire Defines */
+    // Hazard Unit
+    wire [4:0] reg_read1_num_realtime_id;
+    wire [4:0] reg_read2_num_realtime_id;
+    wire [4:0] reg_write_num_realtime_ex;
+    wire [4:0] reg_write_num_realtime_mem;
+    wire [4:0] stalls;
+    reg [4:0] flushs;
     // Stage IF->ID 
     wire [31:0] current_pc_if;
     wire [31:0] ins_if;
@@ -38,8 +46,8 @@ module cpu(
     wire [31:0] reg_read2_data_ex;
     wire [31:0] alu_result_ex;
     wire  alu_zero_ex;
-    wire [31:0] next_pc_ex;
-    wire [1:0] pc_inc_ex;
+    wire [31:0] next_pc_realtime_ex;
+    wire [1:0] pc_inc_realtime_ex;
     wire reg_write_en_ex;
     wire [4:0] reg_write_num_ex;
     wire [31:0] _syscall_display_ex;
@@ -72,13 +80,27 @@ module cpu(
         end
     `endif
     
+    /* Hazard Unit */
+    cpu_hazard_unit data_hazard_unit(
+        .clk(clk),
+        .clr(clr),
+        .reg_read1_num_realtime_id(reg_read1_num_realtime_id),
+        .reg_read2_num_realtime_id(reg_read2_num_realtime_id),
+        .reg_write_num_realtime_ex(reg_write_num_realtime_ex),
+        .reg_write_num_realtime_mem(reg_write_num_realtime_mem),
+        .stalls(stalls)
+    );
+    always_ff @(negedge clk) begin
+        flushs = 5'b0;
+    end
+
     /* Stage IF */
     //// VAR
     // INPUT
     // in global: clk
     // in global: clr
-    // in ex: pc_inc_ex
-    // in ex: next_pc_ex
+    // in ex: pc_inc_realtime_ex
+    // in ex: next_pc_realtime_ex
     // OUTPUT
     // wire [31:0] current_pc_if;
     // wire [31:0] ins_if;
@@ -91,8 +113,9 @@ module cpu(
     cpu_if stage_if(
         .clk(clk),
         .clr(clr),
-        .pc_inc(pc_inc_ex),
-        .next_pc(next_pc_ex),
+        .pc_inc(pc_inc_realtime_ex),
+        .next_pc(next_pc_realtime_ex),
+        .stall(stalls[`HAZARD_STALL_IF]),
         .current_pc(current_pc_if),
         .ins(ins_if),
         .cycle_count(cycle_count_if),
@@ -129,11 +152,14 @@ module cpu(
         .reg_write_en(reg_write_en_mem),
         .reg_write_num(reg_write_num_mem),
         .reg_write_data(reg_write_data_mem),
+        .stall(stalls[`HAZARD_STALL_ID]),
         .current_pc_id(current_pc_id),
         .ins_id(ins_id),
         .controls(controls_id),
         .reg_read1_data(reg_read1_data_id),
         .reg_read2_data(reg_read2_data_id),
+        .reg_read1_num_realtime(reg_read1_num_realtime_id),
+        .reg_read2_num_realtime(reg_read2_num_realtime_id),
         ._direct_out_v0(_syscall_reg_v0_id),
         ._direct_out_a0(_syscall_reg_a0_id)
     );
@@ -155,8 +181,8 @@ module cpu(
     // wire [31:0] reg_read2_data_ex;
     // wire [31:0] alu_result_ex;
     // wire  alu_zero_ex;
-    // wire [31:0] next_pc_ex;
-    // wire [1:0] pc_inc_ex;
+    // wire [31:0] next_pc_realtime_ex;
+    // wire [1:0] pc_inc_realtime_ex;
     // wire reg_write_en_ex;
     // wire [4:0] reg_write_num_ex;
     // wire [31:0] _syscall_display_ex;
@@ -177,10 +203,11 @@ module cpu(
         .reg_read2_data_ex(reg_read2_data_ex),
         .alu_result(alu_result_ex),
         .alu_zero(alu_zero_ex),
-        .next_pc(next_pc_ex),
-        .pc_inc(pc_inc_ex),
+        .next_pc_realtime(next_pc_realtime_ex),
+        .pc_inc_realtime(pc_inc_realtime_ex),
         .reg_write_en(reg_write_en_ex),
         .reg_write_num(reg_write_num_ex),
+        .reg_write_num_realtime(reg_write_num_realtime_ex),
         ._syscall_reg_v0(_syscall_reg_v0_id),
         ._syscall_reg_a0(_syscall_reg_a0_id),
         ._syscall_display(_syscall_display_ex),
@@ -219,7 +246,8 @@ module cpu(
         .dm_read_data(dm_read_data_mem),
         .reg_write_en_mem(reg_write_en_mem),
         .reg_write_num_mem(reg_write_num_mem),
-        .reg_write_data(reg_write_data_mem)
+        .reg_write_data(reg_write_data_mem),
+        .reg_write_num_realtime(reg_write_num_realtime_mem)
     );
 endmodule
 

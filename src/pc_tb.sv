@@ -1,8 +1,12 @@
 `timescale 1ns / 1ps
 
 `include "pc_calculator.sv"
-`include "pc_ff.sv"
+//`include "pc_ff.sv"
 `include "defines.vh"
+
+/*
+* need update, do not use
+*/
 
 module pc_tb;
     reg clk;
@@ -29,14 +33,14 @@ module pc_tb;
         .abs_addr(abs_addr),
         .branch_addr(branch_addr),
         .next_pc(next_pc)
-    );
+    );/*
     pc_ff main_pc_ff(
         .clk(clk),
         .clr(clr),
         .next_pc(next_pc),
         .pc_inc(pc_inc),
         .current_pc(current_pc)
-    );
+    );*/
 
     always #5 clk = ~clk;
 

@@ -21,10 +21,11 @@ module cpu_ex(
     output reg [31:0] reg_read2_data_ex, // latch
     output reg [31:0] alu_result,
     output reg alu_zero,
-    output reg [31:0] next_pc,
-    output reg [1:0] pc_inc,
+    output [31:0] next_pc_realtime,
+    output [1:0] pc_inc_realtime,
     output reg reg_write_en,
     output reg [4:0] reg_write_num,
+    output [4:0] reg_write_num_realtime,
     input [31:0] _syscall_reg_v0,
     input [31:0] _syscall_reg_a0,
     output reg [31:0] _syscall_display,
@@ -89,6 +90,9 @@ module cpu_ex(
     assign pc_branch_addr = imme_extented;
     wire [1:0] _pc_inc;
     assign _pc_inc = controls[`CON_PC_INC] | _syscall_pc_inc_mask;
+    assign pc_inc_realtime =
+        (clr == 1'b1) ? 2'b00 :
+        _pc_inc;
     // OUTPUT
     wire [31:0] _next_pc;
     //// MODULE
@@ -100,6 +104,9 @@ module cpu_ex(
         .branch_addr(pc_branch_addr),
         .next_pc(_next_pc)
     );
+    assign next_pc_realtime =
+        (clr == 1'b1) ? 32'h00000000 :
+        _next_pc;
 
     /* TEMP Syscall Handle */
     wire _syscall;
@@ -131,7 +138,8 @@ module cpu_ex(
         (controls[`CON_REG_WRITE_NUM] == `REG_WRITE_NUM_RT) ? ins[`INS_RAW_RT] :
         (controls[`CON_REG_WRITE_NUM] == `REG_WRITE_NUM_RD) ? ins[`INS_RAW_RD] :
         (controls[`CON_REG_WRITE_NUM] == `REG_WRITE_NUM_31) ? 5'h1f :
-        5'h0;
+        5'h00;
+    assign reg_write_num_realtime = _reg_write_num;
     
     always_ff @(posedge clk) begin
         if(clr) begin
@@ -141,8 +149,8 @@ module cpu_ex(
             ins_ex <= 32'h00000000; // NOP (sll $0, $0, $0)
             alu_result <= 32'h00000000;
             alu_zero <= 1'b0;
-            next_pc <= 32'h00000000;
-            pc_inc <= 2'b00;
+            //next_pc <= 32'h00000000;
+            //pc_inc <= 2'b00;
             reg_write_en <= `REG_WRITE_EN_F;
             reg_write_num <= 5'h00;
         end else begin
@@ -152,8 +160,8 @@ module cpu_ex(
             ins_ex <= ins;
             alu_result <= _alu_result;
             alu_zero <= _alu_zero;
-            next_pc <= _next_pc;
-            pc_inc <= _pc_inc;
+            //next_pc <= _next_pc;
+            //pc_inc <= _pc_inc;
             reg_write_en <= _reg_write_en;
             reg_write_num <= _reg_write_num;
         end

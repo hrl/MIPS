@@ -19,7 +19,8 @@ module cpu_mem(
     output reg reg_write_en_mem, // latch
     output reg [4:0] reg_write_num_mem, //latch
     output reg [31:0] dm_read_data,
-    output reg [31:0] reg_write_data
+    output reg [31:0] reg_write_data,
+    output [4:0] reg_write_num_realtime // actually same as reg_write_num
     );
     /* Data Memory */
     //// VAR
@@ -50,6 +51,7 @@ module cpu_mem(
         (controls[`CON_REG_WRITE_DATA] == `REG_WRITE_DATA_DM) ? _dm_read_data :
         (controls[`CON_REG_WRITE_DATA] == `REG_WRITE_DATA_PC) ? current_pc+1 :
         32'h0;
+    assign reg_write_num_realtime = reg_write_num;
     
     always_ff @(posedge clk) begin
         if(clr) begin

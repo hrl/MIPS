@@ -15,11 +15,14 @@ module cpu_id_wb(
     input reg_write_en, // from MEM
     input [4:0] reg_write_num, // from MEM
     input [31:0] reg_write_data, // from MEM
+    input stall, // 0: normal; 1: clean controls/ins
     output reg [31:0] current_pc_id, // latch
     output reg [31:0] ins_id, // latch
     output reg [`CON_MSB:`CON_LSB] controls,
     output reg [31:0] reg_read1_data,
     output reg [31:0] reg_read2_data,
+    output [4:0] reg_read1_num_realtime,
+    output [4:0] reg_read2_num_realtime,
     output [31:0] _direct_out_v0,
     output [31:0] _direct_out_a0
     );
@@ -44,12 +47,14 @@ module cpu_id_wb(
         (_controls[`CON_REG_READ1_NUM] == `REG_READ1_NUM_RS) ? ins[`INS_RAW_RS] :
         (_controls[`CON_REG_READ1_NUM] == `REG_READ1_NUM_RT) ? ins[`INS_RAW_RT] :
         5'h0;
+    assign reg_read1_num_realtime = reg_read1_num;
     wire [4:0] reg_read2_num;
     assign reg_read2_num =
         (_controls[`CON_REG_READ2_EN] == `REG_READ2_EN_F) ? 5'h0 :
         (_controls[`CON_REG_READ2_NUM] == `REG_READ2_NUM_RS) ? ins[`INS_RAW_RS] :
         (_controls[`CON_REG_READ2_NUM] == `REG_READ2_NUM_RT) ? ins[`INS_RAW_RT] :
         5'h0;
+    assign reg_read2_num_realtime = reg_read2_num;
     // in global: clk
     // OUTPUT
     wire [31:0] _reg_read1_data;
@@ -76,11 +81,18 @@ module cpu_id_wb(
             current_pc_id <= 32'h00000000;
             ins_id <= 32'h00000000; // NOP (sll $0, $0, $0)
         end else begin
-            controls <= _controls;
-            reg_read1_data <= _reg_read1_data;
-            reg_read2_data <= _reg_read2_data;
+            if(stall == 1'b1) begin
+                controls <= `CON_NOP;
+                reg_read1_data <= 32'h00000000;
+                reg_read2_data <= 32'h00000000;
+                ins_id <= 32'h00000000; // NOP (sll $0, $0, $0)
+            end else begin
+                controls <= _controls;
+                reg_read1_data <= _reg_read1_data;
+                reg_read2_data <= _reg_read2_data;
+                ins_id <= ins;
+            end
             current_pc_id <= current_pc;
-            ins_id <= ins;
         end
     end
 endmodule
