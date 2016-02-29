@@ -225,5 +225,9 @@
 `define HAZARD_FLUSH_MEM 1
 `define HAZARD_FLUSH_WB  0
 
+`define HAZARD_REDIRECT_DISABLE 2'b00
+`define HAZARD_REDIRECT_EX      2'b01
+`define HAZARD_REDIRECT_MEM     2'b10
+
 
 `endif

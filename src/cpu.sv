@@ -31,11 +31,14 @@ module cpu(
     wire [4:0] reg_read2_num_realtime_id;
     wire [4:0] reg_write_num_realtime_ex;
     wire [4:0] reg_write_num_realtime_mem;
+    wire [1:0] con_reg_write_data_realtime_ex;
     wire [4:0] stalls;
+    wire [1:0] reg_read1_data_redirect;
+    wire [1:0] reg_read2_data_redirect;
     wire [4:0] flushs;
     wire [31:0] data_hazard_count;
-    wire [31:0] data_hazard_ex_count;
-    wire [31:0] data_hazard_mem_count;
+    wire [31:0] data_hazard_redirect_count;
+    wire [31:0] data_hazard_stall_count;
     wire [31:0] control_hazard_count;
     wire [31:0] control_hazard_branch_count;
     wire [31:0] control_hazard_jump_count;
@@ -49,8 +52,6 @@ module cpu(
     wire [`CON_MSB:`CON_LSB] controls_id;
     wire [31:0] reg_read1_data_id;
     wire [31:0] reg_read2_data_id;
-    wire [31:0] _syscall_reg_v0_id;
-    wire [31:0] _syscall_reg_a0_id;
     // Stage EX->MEM
     wire [31:0] current_pc_ex;
     wire [31:0] ins_ex;
@@ -61,6 +62,7 @@ module cpu(
     wire [31:0] next_pc_realtime_ex;
     wire [1:0] pc_inc_realtime_ex;
     wire reg_write_en_ex;
+    wire [31:0] reg_write_data_ex;
     wire [4:0] reg_write_num_ex;
     wire [31:0] _syscall_display_ex;
     // Stage MEM->WB
@@ -89,8 +91,8 @@ module cpu(
         always_ff @(posedge clk iff halt) begin
             $display("HALT, cycle_count: %d", cycle_count-1);
             $display("HALT, data_hazard_count: %d", data_hazard_count);
-            $display("HALT, data_hazard_mem_count: %d", data_hazard_mem_count-data_hazard_ex_count);
-            $display("HALT, data_hazard_ex_mem_count: %d", data_hazard_mem_count>>1);
+            $display("HALT, data_hazard_redirect_count: %d", data_hazard_redirect_count);
+            $display("HALT, data_hazard_stall_count: %d", data_hazard_stall_count);
             $display("HALT, control_hazard_count: %d", control_hazard_count);
             $display("HALT, control_hazard_branch_count: %d", control_hazard_branch_count);
             $display("HALT, control_hazard_jump_count: %d", control_hazard_jump_count);
@@ -99,19 +101,25 @@ module cpu(
     `endif
     
     /* Hazard Unit */
-    cpu_hazard_unit data_hazard_unit(
+    cpu_hazard_unit hazard_unit(
         .clk(clk),
         .clr(clr),
+        // data hazard
         .reg_read1_num_realtime_id(reg_read1_num_realtime_id),
         .reg_read2_num_realtime_id(reg_read2_num_realtime_id),
         .reg_write_num_realtime_ex(reg_write_num_realtime_ex),
         .reg_write_num_realtime_mem(reg_write_num_realtime_mem),
+        .con_reg_write_data_realtime_ex(con_reg_write_data_realtime_ex),
         .stalls(stalls),
+        .reg_read1_data_redirect(reg_read1_data_redirect),
+        .reg_read2_data_redirect(reg_read2_data_redirect),
+        // control hazard
         .pc_inc_realtime_ex(pc_inc_realtime_ex),
         .flushs(flushs),
+        // debug count
         .data_hazard_count(data_hazard_count),
-        .data_hazard_ex_count(data_hazard_ex_count),
-        .data_hazard_mem_count(data_hazard_mem_count),
+        .data_hazard_redirect_count(data_hazard_redirect_count),
+        .data_hazard_stall_count(data_hazard_stall_count),
         .control_hazard_count(control_hazard_count),
         .control_hazard_branch_count(control_hazard_branch_count),
         .control_hazard_jump_count(control_hazard_jump_count)
@@ -164,8 +172,6 @@ module cpu(
     // wire [`CON_MSB:`CON_LSB] controls_id;
     // wire [31:0] reg_read1_data_id;
     // wire [31:0] reg_read2_data_id;
-    // wire [31:0] _syscall_reg_v0_id;
-    // wire [31:0] _syscall_reg_a0_id;
     //// MODULE
     cpu_id_wb stage_id_wb(
         .clk(clk),
@@ -182,9 +188,7 @@ module cpu(
         .reg_read1_data(reg_read1_data_id),
         .reg_read2_data(reg_read2_data_id),
         .reg_read1_num_realtime(reg_read1_num_realtime_id),
-        .reg_read2_num_realtime(reg_read2_num_realtime_id),
-        ._direct_out_v0(_syscall_reg_v0_id),
-        ._direct_out_a0(_syscall_reg_a0_id)
+        .reg_read2_num_realtime(reg_read2_num_realtime_id)
     );
 
     /* Stage EX */
@@ -220,20 +224,30 @@ module cpu(
         .controls(controls_id),
         .reg_read1_data(reg_read1_data_id),
         .reg_read2_data(reg_read2_data_id),
+        // latch signal
         .current_pc_ex(current_pc_ex),
         .ins_ex(ins_ex),
         .controls_ex(controls_ex),
         .reg_read2_data_ex(reg_read2_data_ex),
+        // stage EX output
         .alu_result(alu_result_ex),
         .alu_zero(alu_zero_ex),
+        // pc change signal
         .next_pc_realtime(next_pc_realtime_ex),
         .pc_inc_realtime(pc_inc_realtime_ex),
+        // hazard detect signal
         .reg_write_en(reg_write_en_ex),
         .reg_write_num(reg_write_num_ex),
         .reg_write_num_realtime(reg_write_num_realtime_ex),
-        ._syscall_reg_v0(_syscall_reg_v0_id),
-        ._syscall_reg_a0(_syscall_reg_a0_id),
+        // data redirect signal
+        .reg_read1_data_redirect(reg_read1_data_redirect),
+        .reg_read2_data_redirect(reg_read2_data_redirect),
+        .reg_write_data_mem(reg_write_data_mem),
+        .con_reg_write_data_realtime(con_reg_write_data_realtime_ex),
+        .reg_write_data(reg_write_data_ex),
+        // syscall signal
         ._syscall_display(_syscall_display_ex),
+        // debug signal
         ._debug_syscall(_debug_syscall),
         ._debug_syscall_pc_inc_mask(_debug_syscall_pc_inc_mask)
     );

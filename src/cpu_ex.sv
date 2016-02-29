@@ -15,19 +15,28 @@ module cpu_ex(
     input [`CON_MSB:`CON_LSB] controls, // from ID
     input [31:0] reg_read1_data, // from ID
     input [31:0] reg_read2_data, // from ID
+    // latch signal
     output reg [31:0] current_pc_ex, // latch
     output reg [31:0] ins_ex, // latch
     output reg [`CON_MSB:`CON_LSB] controls_ex, // latch
     output reg [31:0] reg_read2_data_ex, // latch
+    // stage EX output
     output reg [31:0] alu_result,
     output reg alu_zero,
+    // pc change signal
     output [31:0] next_pc_realtime,
     output [1:0] pc_inc_realtime,
+    // hazard detect signal
     output reg reg_write_en,
     output reg [4:0] reg_write_num,
     output [4:0] reg_write_num_realtime,
-    input [31:0] _syscall_reg_v0,
-    input [31:0] _syscall_reg_a0,
+    // data redirect signal
+    input [1:0] reg_read1_data_redirect,
+    input [1:0] reg_read2_data_redirect,
+    input [31:0] reg_write_data_mem,
+    output [1:0] con_reg_write_data_realtime,
+    output reg [31:0] reg_write_data, // result in last cycle
+    // debug signal
     output reg [31:0] _syscall_display,
     output _debug_syscall,
     output [1:0] _debug_syscall_pc_inc_mask
@@ -47,16 +56,26 @@ module cpu_ex(
     //// VAR
     // INPUT
     // in control: controls
+    wire [31:0] reg_read1_data_redirected;
+    assign reg_read1_data_redirected =
+        (reg_read1_data_redirect == `HAZARD_REDIRECT_EX) ? reg_write_data :
+        (reg_read1_data_redirect == `HAZARD_REDIRECT_MEM) ? reg_write_data_mem :
+        reg_read1_data;
+    wire [31:0] reg_read2_data_redirected;
+    assign reg_read2_data_redirected =
+        (reg_read2_data_redirect == `HAZARD_REDIRECT_EX) ? reg_write_data :
+        (reg_read2_data_redirect == `HAZARD_REDIRECT_MEM) ? reg_write_data_mem :
+        reg_read2_data;
     wire [31:0] alu_a;
     assign alu_a =
-        (controls[`CON_ALU_A] == `ALU_A_REG) ? reg_read1_data:
-        (controls[`CON_ALU_A] == `ALU_A_IMME) ? imme_extented:
+        (controls[`CON_ALU_A] == `ALU_A_REG) ? reg_read1_data_redirected :
+        (controls[`CON_ALU_A] == `ALU_A_IMME) ? imme_extented :
         32'h0;
     wire [31:0] alu_b;
     assign alu_b =
-        (controls[`CON_ALU_B] == `ALU_B_REG) ? reg_read2_data:
-        (controls[`CON_ALU_B] == `ALU_B_IMME) ? imme_extented:
-        (controls[`CON_ALU_B] == `ALU_B_SHAMT) ? shamt_extented:
+        (controls[`CON_ALU_B] == `ALU_B_REG) ? reg_read2_data_redirected :
+        (controls[`CON_ALU_B] == `ALU_B_IMME) ? imme_extented :
+        (controls[`CON_ALU_B] == `ALU_B_SHAMT) ? shamt_extented :
         32'h0;
     // OUTPUT
     wire [31:0] _alu_result;
@@ -116,6 +135,10 @@ module cpu_ex(
         ((ins[`INS_RAW_OPCODE] == 6'b000000) && (ins[`INS_RAW_FUNCT] == `INS_R_SYSCALL)) ? 1'b1 :
         1'b0;
     reg [1:0] _syscall_pc_inc_mask = 2'b00;
+    wire [31:0] _syscall_reg_v0;
+    assign _syscall_reg_v0 = reg_read1_data_redirected;
+    wire [31:0] _syscall_reg_a0;
+    assign _syscall_reg_a0 = reg_read2_data_redirected;
     always_ff @(negedge clk) begin
         if(clr) begin
             _syscall_pc_inc_mask <= 2'b00;
@@ -142,6 +165,14 @@ module cpu_ex(
         (controls[`CON_REG_WRITE_NUM] == `REG_WRITE_NUM_31) ? 5'h1f :
         5'h00;
     assign reg_write_num_realtime = _reg_write_num;
+
+    // data redirect signal
+    wire [31:0] _reg_write_data;
+    assign _reg_write_data =
+        (controls[`CON_REG_WRITE_DATA] == `REG_WRITE_DATA_ALU) ? _alu_result :
+        (controls[`CON_REG_WRITE_DATA] == `REG_WRITE_DATA_PC) ? current_pc+1 :
+        32'h0;
+    assign con_reg_write_data_realtime = controls[`CON_REG_WRITE_DATA];
     
     always_ff @(posedge clk) begin
         if(clr) begin
@@ -155,10 +186,11 @@ module cpu_ex(
             //pc_inc <= 2'b00;
             reg_write_en <= `REG_WRITE_EN_F;
             reg_write_num <= 5'h00;
+            reg_write_data <= 31'h00000000;
         end else begin
             current_pc_ex <= current_pc;
             controls_ex <= controls;
-            reg_read2_data_ex <= reg_read2_data;
+            reg_read2_data_ex <= reg_read2_data_redirected;
             ins_ex <= ins;
             alu_result <= _alu_result;
             alu_zero <= _alu_zero;
@@ -166,6 +198,7 @@ module cpu_ex(
             //pc_inc <= _pc_inc;
             reg_write_en <= _reg_write_en;
             reg_write_num <= _reg_write_num;
+            reg_write_data <= _reg_write_data;
         end
     end
 endmodule

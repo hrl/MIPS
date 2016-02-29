@@ -22,9 +22,7 @@ module cpu_id_wb(
     output reg [31:0] reg_read1_data,
     output reg [31:0] reg_read2_data,
     output [4:0] reg_read1_num_realtime,
-    output [4:0] reg_read2_num_realtime,
-    output [31:0] _direct_out_v0,
-    output [31:0] _direct_out_a0
+    output [4:0] reg_read2_num_realtime
     );
     /* Control */
     //// VAR
@@ -43,7 +41,7 @@ module cpu_id_wb(
     // INPUT
     wire [4:0] reg_read1_num;
     assign reg_read1_num =
-        ((ins[`INS_RAW_OPCODE] == 6'b000000) && (ins[`INS_RAW_FUNCT] == `INS_R_SYSCALL)) ? 5'h02 :
+        ((ins[`INS_RAW_OPCODE] == 6'b000000) && (ins[`INS_RAW_FUNCT] == `INS_R_SYSCALL)) ? 5'h02 : // 2: v0
         (_controls[`CON_REG_READ1_EN] == `REG_READ1_EN_F) ? 5'h0 :
         (_controls[`CON_REG_READ1_NUM] == `REG_READ1_NUM_RS) ? ins[`INS_RAW_RS] :
         (_controls[`CON_REG_READ1_NUM] == `REG_READ1_NUM_RT) ? ins[`INS_RAW_RT] :
@@ -51,7 +49,7 @@ module cpu_id_wb(
     assign reg_read1_num_realtime = reg_read1_num;
     wire [4:0] reg_read2_num;
     assign reg_read2_num =
-        ((ins[`INS_RAW_OPCODE] == 6'b000000) && (ins[`INS_RAW_FUNCT] == `INS_R_SYSCALL)) ? 5'h04 :
+        ((ins[`INS_RAW_OPCODE] == 6'b000000) && (ins[`INS_RAW_FUNCT] == `INS_R_SYSCALL)) ? 5'h04 : // 4: a0
         (_controls[`CON_REG_READ2_EN] == `REG_READ2_EN_F) ? 5'h0 :
         (_controls[`CON_REG_READ2_NUM] == `REG_READ2_NUM_RS) ? ins[`INS_RAW_RS] :
         (_controls[`CON_REG_READ2_NUM] == `REG_READ2_NUM_RT) ? ins[`INS_RAW_RT] :
@@ -70,9 +68,7 @@ module cpu_id_wb(
         .write_en(reg_write_en),
         .clk(clk),
         .read1_data(_reg_read1_data),
-        .read2_data(_reg_read2_data),
-        ._direct_out_v0(_direct_out_v0),
-        ._direct_out_a0(_direct_out_a0)
+        .read2_data(_reg_read2_data)
     );
 
     always_ff @(posedge clk) begin

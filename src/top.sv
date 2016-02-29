@@ -15,7 +15,10 @@ module top(
     /* Global */
     wire cpu_clk;
     wire seg_clk;
-    clock #(500000) clock_cpu_200hz(
+    wire [31:0] cpu_display;
+    wire [31:0] cpu_cycles;
+    wire halt;
+    clock #(1000000) clock_cpu_100hz(
         .clk(clk),
         .clk_div(cpu_clk)
     );
@@ -41,9 +44,9 @@ module top(
         cpu_clr <= 0;
     end
     // OUTPUT
-    wire [31:0] cpu_display;
-    wire [31:0] cpu_cycles;
-    wire halt;
+    // wire [31:0] cpu_display;
+    // wire [31:0] cpu_cycles;
+    // wire halt;
     //// MODULE
     cpu main_cpu(
         .clk(cpu_clk),
