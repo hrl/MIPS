@@ -15,7 +15,7 @@ module top(
     /* Global */
     wire cpu_clk;
     wire seg_clk;
-    clock #(2000000) clock_cpu_50hz(
+    clock #(500000) clock_cpu_200hz(
         .clk(clk),
         .clk_div(cpu_clk)
     );

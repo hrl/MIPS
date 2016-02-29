@@ -81,6 +81,7 @@ module cpu_ex(
         (controls[`CON_ALU_BRANCH] == `ALU_BRANCH_BEQ) ? _alu_zero :
         (controls[`CON_ALU_BRANCH] == `ALU_BRANCH_BNE) ? !_alu_zero :
         1'h0;
+    assign alu_branch_result_realtime = alu_branch_result;
     wire [31:0] pc_abs_addr;
     assign pc_abs_addr =
         (controls[`CON_PC_JUMP] == `PC_JUMP_IMME) ? imme_extented :
@@ -89,7 +90,9 @@ module cpu_ex(
     wire [31:0] pc_branch_addr;
     assign pc_branch_addr = imme_extented;
     wire [1:0] _pc_inc;
-    assign _pc_inc = controls[`CON_PC_INC] | _syscall_pc_inc_mask;
+    assign _pc_inc = 
+        (((controls[`CON_PC_INC] == `PC_INC_BRANCH) && (alu_branch_result == 1'b0)) ? `PC_INC_NORMAL :
+        controls[`CON_PC_INC]) | _syscall_pc_inc_mask;
     assign pc_inc_realtime =
         (clr == 1'b1) ? 2'b00 :
         _pc_inc;
@@ -99,7 +102,6 @@ module cpu_ex(
     pc_calculator main_pc_calculator(
         .last_pc(current_pc),
         .pc_inc(_pc_inc),
-        .alu_branch_result(alu_branch_result),
         .abs_addr(pc_abs_addr),
         .branch_addr(pc_branch_addr),
         .next_pc(_next_pc)

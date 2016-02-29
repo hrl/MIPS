@@ -10,6 +10,12 @@
 `include "cpu_ex.sv"
 `include "cpu_mem.sv"
 
+/*
+* 5 stage pipeline CPU
+* posedge clk: latch value (between stages)
+* negedge clk: write back (reg/mem)
+*/
+
 module cpu(
     `ifndef _DEBUG_MODE_CPU
     input clk,
@@ -26,7 +32,13 @@ module cpu(
     wire [4:0] reg_write_num_realtime_ex;
     wire [4:0] reg_write_num_realtime_mem;
     wire [4:0] stalls;
-    reg [4:0] flushs;
+    wire [4:0] flushs;
+    wire [31:0] data_hazard_count;
+    wire [31:0] data_hazard_ex_count;
+    wire [31:0] data_hazard_mem_count;
+    wire [31:0] control_hazard_count;
+    wire [31:0] control_hazard_branch_count;
+    wire [31:0] control_hazard_jump_count;
     // Stage IF->ID 
     wire [31:0] current_pc_if;
     wire [31:0] ins_if;
@@ -76,6 +88,12 @@ module cpu(
         end
         always_ff @(posedge clk iff halt) begin
             $display("HALT, cycle_count: %d", cycle_count-1);
+            $display("HALT, data_hazard_count: %d", data_hazard_count);
+            $display("HALT, data_hazard_mem_count: %d", data_hazard_mem_count-data_hazard_ex_count);
+            $display("HALT, data_hazard_ex_mem_count: %d", data_hazard_mem_count>>1);
+            $display("HALT, control_hazard_count: %d", control_hazard_count);
+            $display("HALT, control_hazard_branch_count: %d", control_hazard_branch_count);
+            $display("HALT, control_hazard_jump_count: %d", control_hazard_jump_count);
             $finish;
         end
     `endif
@@ -88,11 +106,16 @@ module cpu(
         .reg_read2_num_realtime_id(reg_read2_num_realtime_id),
         .reg_write_num_realtime_ex(reg_write_num_realtime_ex),
         .reg_write_num_realtime_mem(reg_write_num_realtime_mem),
-        .stalls(stalls)
+        .stalls(stalls),
+        .pc_inc_realtime_ex(pc_inc_realtime_ex),
+        .flushs(flushs),
+        .data_hazard_count(data_hazard_count),
+        .data_hazard_ex_count(data_hazard_ex_count),
+        .data_hazard_mem_count(data_hazard_mem_count),
+        .control_hazard_count(control_hazard_count),
+        .control_hazard_branch_count(control_hazard_branch_count),
+        .control_hazard_jump_count(control_hazard_jump_count)
     );
-    always_ff @(negedge clk) begin
-        flushs = 5'b0;
-    end
 
     /* Stage IF */
     //// VAR
@@ -146,7 +169,7 @@ module cpu(
     //// MODULE
     cpu_id_wb stage_id_wb(
         .clk(clk),
-        .clr(clr),
+        .clr(clr | flushs[`HAZARD_FLUSH_ID]),
         .current_pc(current_pc_if),
         .ins(ins_if),
         .reg_write_en(reg_write_en_mem),
