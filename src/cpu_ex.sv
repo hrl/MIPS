@@ -23,6 +23,8 @@ module cpu_ex(
     output reg alu_zero,
     output reg [31:0] next_pc,
     output reg [1:0] pc_inc,
+    output reg reg_write_en,
+    output reg [4:0] reg_write_num,
     input [31:0] _syscall_reg_v0,
     input [31:0] _syscall_reg_a0,
     output reg [31:0] _syscall_display,
@@ -119,6 +121,16 @@ module cpu_ex(
         end
     end
     /* !END TEMP Syscall Handle */
+
+    // Stage WB Signal
+    wire _reg_write_en;
+    assign _reg_write_en = controls[`CON_REG_WRITE_EN];
+    wire [4:0] _reg_write_num;
+    assign _reg_write_num =
+        (controls[`CON_REG_WRITE_NUM] == `REG_WRITE_NUM_RT) ? ins[`INS_RAW_RT] :
+        (controls[`CON_REG_WRITE_NUM] == `REG_WRITE_NUM_RD) ? ins[`INS_RAW_RD] :
+        (controls[`CON_REG_WRITE_NUM] == `REG_WRITE_NUM_31) ? 5'h1f :
+        5'h0;
     
     always_ff @(posedge clk) begin
         if(clr) begin
@@ -130,6 +142,8 @@ module cpu_ex(
             alu_zero <= 1'b0;
             next_pc <= 32'h00000000;
             pc_inc <= 2'b00;
+            reg_write_en <= `REG_WRITE_EN_F;
+            reg_write_num <= 5'h00;
         end else begin
             current_pc_ex <= current_pc;
             controls_ex <= controls;
@@ -139,6 +153,8 @@ module cpu_ex(
             alu_zero <= _alu_zero;
             next_pc <= _next_pc;
             pc_inc <= _pc_inc;
+            reg_write_en <= _reg_write_en;
+            reg_write_num <= _reg_write_num;
         end
     end
 endmodule

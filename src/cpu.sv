@@ -40,11 +40,13 @@ module cpu(
     wire  alu_zero_ex;
     wire [31:0] next_pc_ex;
     wire [1:0] pc_inc_ex;
+    wire reg_write_en_ex;
+    wire [4:0] reg_write_num_ex;
     wire [31:0] _syscall_display_ex;
     // Stage MEM->WB
-    wire [31:0] dm_read_data_mem;
     wire reg_write_en_mem;
     wire [4:0] reg_write_num_mem;
+    wire [31:0] dm_read_data_mem;
     wire [31:0] reg_write_data_mem;
     /* !END Wire Defines */
 
@@ -155,6 +157,8 @@ module cpu(
     // wire  alu_zero_ex;
     // wire [31:0] next_pc_ex;
     // wire [1:0] pc_inc_ex;
+    // wire reg_write_en_ex;
+    // wire [4:0] reg_write_num_ex;
     // wire [31:0] _syscall_display_ex;
     wire _debug_syscall;
     wire [1:0] _debug_syscall_pc_inc_mask;
@@ -175,6 +179,8 @@ module cpu(
         .alu_zero(alu_zero_ex),
         .next_pc(next_pc_ex),
         .pc_inc(pc_inc_ex),
+        .reg_write_en(reg_write_en_ex),
+        .reg_write_num(reg_write_num_ex),
         ._syscall_reg_v0(_syscall_reg_v0_id),
         ._syscall_reg_a0(_syscall_reg_a0_id),
         ._syscall_display(_syscall_display_ex),
@@ -192,10 +198,12 @@ module cpu(
     // in ex: controls_ex
     // in ex: reg_read2_data_ex
     // in ex: alu_result_ex
+    // in ex: reg_write_en_ex
+    // in ex: reg_write_num_ex
     // OUTPUT
-    // wire [31:0] dm_read_data_mem;
     // wire reg_write_en_mem;
     // wire [4:0] reg_write_num_mem;
+    // wire [31:0] dm_read_data_mem;
     // wire [31:0] reg_write_data_mem;
     //// MODULE
     cpu_mem stage_mem(
@@ -206,9 +214,11 @@ module cpu(
         .controls(controls_ex),
         .reg_read2_data(reg_read2_data_ex),
         .alu_result(alu_result_ex),
+        .reg_write_en(reg_write_en_ex),
+        .reg_write_num(reg_write_num_ex),
         .dm_read_data(dm_read_data_mem),
-        .reg_write_en(reg_write_en_mem),
-        .reg_write_num(reg_write_num_mem),
+        .reg_write_en_mem(reg_write_en_mem),
+        .reg_write_num_mem(reg_write_num_mem),
         .reg_write_data(reg_write_data_mem)
     );
 endmodule

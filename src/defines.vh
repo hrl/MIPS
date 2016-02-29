@@ -2,11 +2,11 @@
 `define _defines
 
 //// DEBUG
-//`define _DEBUG_MODE_CPU
+`define _DEBUG_MODE_CPU
 //`define _DEBUG_MODE_CON
 //`define _DEBUG_MODE_RAM
 
-//`define _DEBUG_MODE_MASK_X_VALUE
+`define _DEBUG_MODE_MASK_X_VALUE
 
 //// INSTRUCTION SET
 // RAW INS
@@ -75,15 +75,17 @@
 `define CON_REG_WRITE_EN    4:4
 `define CON_REG_WRITE_DATA  6:5
 `define CON_REG_WRITE_NUM   8:7
-`define CON_REG_READ1_NUM   9:9
-`define CON_REG_READ2_NUM  10:10
-`define CON_ALU_OP         14:11
-`define CON_ALU_A          15:15
-`define CON_ALU_B          17:16
-`define CON_ALU_BRANCH     18:18
-`define CON_MEM_CS         19:19
-`define CON_MEM_RD         20:20
-`define CON_MSB            20
+`define CON_REG_READ1_EN    9:9
+`define CON_REG_READ1_NUM  10:10
+`define CON_REG_READ2_EN   11:11
+`define CON_REG_READ2_NUM  12:12
+`define CON_ALU_OP         16:13
+`define CON_ALU_A          17:17
+`define CON_ALU_B          19:18
+`define CON_ALU_BRANCH     20:20
+`define CON_MEM_CS         21:21
+`define CON_MEM_RD         22:22
+`define CON_MSB            22
 
 //// IMME
 `define IMME_EXT_ZERO 1'b0
@@ -129,9 +131,13 @@
 `endif
 
 //// REG
+`define REG_READ1_EN_F 1'b0
+`define REG_READ1_EN_T 1'b1
 `define REG_READ1_NUM_RT 1'b0
 `define REG_READ1_NUM_RS 1'b1
 
+`define REG_READ2_EN_F 1'b0
+`define REG_READ2_EN_T 1'b1
 `define REG_READ2_NUM_RT 1'b0
 `define REG_READ2_NUM_RS 1'b1
 
@@ -204,7 +210,20 @@
 
 //// PIPELINE
 // CON
-`define CON_NOP {`MEM_RD_READ, `MEM_CS_DISABLE, `ALU_BRANCH_X, `ALU_B_X, `ALU_A_X, `ALU_OP_X, `REG_READ2_NUM_X, `REG_READ1_NUM_X, `REG_WRITE_NUM_X, `REG_WRITE_DATA_X, `REG_WRITE_EN_F, `PC_JUMP_X, `PC_INC_NORMAL, `IMME_EXT_X};
+`define CON_NOP {`MEM_RD_READ, `MEM_CS_DISABLE, `ALU_BRANCH_X, `ALU_B_X, `ALU_A_X, `ALU_OP_X, `REG_READ2_NUM_X, `REG_READ2_EN_F, `REG_READ1_NUM_X, `REG_READ1_EN_F, `REG_WRITE_NUM_X, `REG_WRITE_DATA_X, `REG_WRITE_EN_F, `PC_JUMP_X, `PC_INC_NORMAL, `IMME_EXT_X};
+
+// HAZARD
+`define HAZARD_STALL_IP  4
+`define HAZARD_STALL_ID  3
+`define HAZARD_STALL_EX  2
+`define HAZARD_STALL_MEM 1
+`define HAZARD_STALL_WB  0
+
+`define HAZARD_FLUSH_IP  4
+`define HAZARD_FLUSH_ID  3
+`define HAZARD_FLUSH_EX  2
+`define HAZARD_FLUSH_MEM 1
+`define HAZARD_FLUSH_WB  0
 
 
 `endif

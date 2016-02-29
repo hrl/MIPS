@@ -40,11 +40,13 @@ module cpu_id_wb(
     // INPUT
     wire [4:0] reg_read1_num;
     assign reg_read1_num =
+        (_controls[`CON_REG_READ1_EN] == `REG_READ1_EN_F) ? 5'h0 :
         (_controls[`CON_REG_READ1_NUM] == `REG_READ1_NUM_RS) ? ins[`INS_RAW_RS] :
         (_controls[`CON_REG_READ1_NUM] == `REG_READ1_NUM_RT) ? ins[`INS_RAW_RT] :
         5'h0;
     wire [4:0] reg_read2_num;
     assign reg_read2_num =
+        (_controls[`CON_REG_READ2_EN] == `REG_READ2_EN_F) ? 5'h0 :
         (_controls[`CON_REG_READ2_NUM] == `REG_READ2_NUM_RS) ? ins[`INS_RAW_RS] :
         (_controls[`CON_REG_READ2_NUM] == `REG_READ2_NUM_RT) ? ins[`INS_RAW_RT] :
         5'h0;

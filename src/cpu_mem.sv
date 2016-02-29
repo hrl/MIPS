@@ -14,9 +14,11 @@ module cpu_mem(
     input [`CON_MSB:`CON_LSB] controls, // from EX
     input [31:0] reg_read2_data, // from EX
     input [31:0] alu_result, // from EX
+    input reg_write_en, // from EX
+    input [4:0] reg_write_num, // from EX
+    output reg reg_write_en_mem, // latch
+    output reg [4:0] reg_write_num_mem, //latch
     output reg [31:0] dm_read_data,
-    output reg reg_write_en,
-    output reg [4:0] reg_write_num,
     output reg [31:0] reg_write_data
     );
     /* Data Memory */
@@ -42,14 +44,6 @@ module cpu_mem(
     );
 
     // Stage WB Signal
-    wire _reg_write_en;
-    assign _reg_write_en = controls[`CON_REG_WRITE_EN];
-    wire [4:0] _reg_write_num;
-    assign _reg_write_num =
-        (controls[`CON_REG_WRITE_NUM] == `REG_WRITE_NUM_RT) ? ins[`INS_RAW_RT] :
-        (controls[`CON_REG_WRITE_NUM] == `REG_WRITE_NUM_RD) ? ins[`INS_RAW_RD] :
-        (controls[`CON_REG_WRITE_NUM] == `REG_WRITE_NUM_31) ? 5'h1f :
-        5'h0;
     wire [31:0] _reg_write_data;
     assign _reg_write_data =
         (controls[`CON_REG_WRITE_DATA] == `REG_WRITE_DATA_ALU) ? alu_result :
@@ -59,14 +53,14 @@ module cpu_mem(
     
     always_ff @(posedge clk) begin
         if(clr) begin
+            reg_write_en_mem <= `REG_WRITE_EN_F;
+            reg_write_num_mem <= 5'h00;
             dm_read_data <= 31'h00000000;
-            reg_write_en <= `REG_WRITE_EN_F;
-            reg_write_num <= 5'h00;
             reg_write_data <= 31'h00000000;
         end else begin
+            reg_write_en_mem <= reg_write_en;
+            reg_write_num_mem <= reg_write_num;
             dm_read_data <= _dm_read_data;
-            reg_write_en <= _reg_write_en;
-            reg_write_num <= _reg_write_num;
             reg_write_data <= _reg_write_data;
         end
     end
