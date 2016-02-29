@@ -13,7 +13,7 @@
 /*
 * 5 stage pipeline CPU
 * posedge clk: latch value (between stages)
-* negedge clk: write back (reg/mem)
+* negedge clk: write back (reg/mem), set stall/flush
 */
 
 module cpu(
@@ -101,6 +101,22 @@ module cpu(
     `endif
     
     /* Hazard Unit */
+    //// VAR
+    // INPUT
+    // in global: clk
+    // in global: clr
+    // in id: reg_read1_num_realtime_id
+    // in id: reg_read2_num_realtime_id
+    // in ex: reg_write_num_realtime_ex
+    // in mem: reg_write_num_realtime_mem
+    // in ex: con_reg_write_data_realtime_ex
+    // in ex: pc_inc_realtime_ex
+    // OUTPUT
+    // wire [4:0] stalls
+    // wire [1:0] reg_read1_data_redirect
+    // wire [1:0] reg_read2_data_redirect
+    // wire [4:0] flushs
+    //// MODULE
     cpu_hazard_unit hazard_unit(
         .clk(clk),
         .clr(clr),
@@ -172,6 +188,8 @@ module cpu(
     // wire [`CON_MSB:`CON_LSB] controls_id;
     // wire [31:0] reg_read1_data_id;
     // wire [31:0] reg_read2_data_id;
+    // wire [4:0] reg_read1_num_realtime_id
+    // wire [4:0] reg_read2_num_realtime_id
     //// MODULE
     cpu_id_wb stage_id_wb(
         .clk(clk),
@@ -201,6 +219,9 @@ module cpu(
     // in id: controls_id
     // in id: reg_read1_data_id
     // in id: reg_read2_data_id
+    // in hazard: reg_read1_data_redirect
+    // in hazard: reg_read2_data_redirect
+    // in hazard: reg_write_data_mem
     // OUTPUT
     // wire [31:0] current_pc_ex;
     // wire [31:0] ins_ex;
@@ -212,6 +233,9 @@ module cpu(
     // wire [1:0] pc_inc_realtime_ex;
     // wire reg_write_en_ex;
     // wire [4:0] reg_write_num_ex;
+    // wire [4:0] reg_write_num_realtime_ex;
+    // wire [1:0] con_reg_write_data_realtime_ex;
+    // wire [31:0] reg_write_data;
     // wire [31:0] _syscall_display_ex;
     wire _debug_syscall;
     wire [1:0] _debug_syscall_pc_inc_mask;
@@ -269,6 +293,7 @@ module cpu(
     // wire [4:0] reg_write_num_mem;
     // wire [31:0] dm_read_data_mem;
     // wire [31:0] reg_write_data_mem;
+    // wire [4:0] reg_write_num_realtime;
     //// MODULE
     cpu_mem stage_mem(
         .clk(clk),
