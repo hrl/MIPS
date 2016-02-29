@@ -127,6 +127,7 @@ module cpu_ex(
     assign _reg_write_en = controls[`CON_REG_WRITE_EN];
     wire [4:0] _reg_write_num;
     assign _reg_write_num =
+        (controls[`CON_REG_WRITE_EN] == `REG_WRITE_EN_F) ? 5'h00 :
         (controls[`CON_REG_WRITE_NUM] == `REG_WRITE_NUM_RT) ? ins[`INS_RAW_RT] :
         (controls[`CON_REG_WRITE_NUM] == `REG_WRITE_NUM_RD) ? ins[`INS_RAW_RD] :
         (controls[`CON_REG_WRITE_NUM] == `REG_WRITE_NUM_31) ? 5'h1f :
