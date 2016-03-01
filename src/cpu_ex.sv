@@ -6,13 +6,17 @@
 `include "defines.vh"
 `include "alu.sv"
 `include "pc_calculator.sv"
+`include "cp0.sv"
 
 module cpu_ex(
     input clk, // from global
+    input clk_delay, // from global
     input clr, // from global
+    input [7:0] hardware_interrupt, // from global
     input [31:0] current_pc, // from ID
     input [31:0] ins, // from ID
     input [`CON_MSB:`CON_LSB] controls, // from ID
+    input eret, // from ID
     input [31:0] reg_read1_data, // from ID
     input [31:0] reg_read2_data, // from ID
     // latch signal
@@ -23,6 +27,7 @@ module cpu_ex(
     // stage EX output
     output reg [31:0] alu_result,
     output reg alu_zero,
+    output cp0_writeback_mask,
     // pc change signal
     output [31:0] next_pc_realtime,
     output [1:0] pc_inc_realtime,
@@ -39,7 +44,11 @@ module cpu_ex(
     // debug signal
     output reg [31:0] _syscall_display,
     output _debug_syscall,
-    output [1:0] _debug_syscall_pc_inc_mask
+    output [1:0] _debug_syscall_pc_inc_mask,
+    output _debug_cp0_pc_jump,
+    output [31:0] _debug_cp0_pc_addr,
+    output _debug_cp0_interrupt,
+    output [31:0] _debug_cp0_status
     );
     assign _debug_syscall = _syscall;
     assign _debug_syscall_pc_inc_mask = _syscall_pc_inc_mask;
@@ -51,6 +60,17 @@ module cpu_ex(
         32'h0;
     wire [31:0] shamt_extented;
     assign shamt_extented = {27'h0, ins[`INS_RAW_SHAMT]};
+
+    wire cp0_pc_jump;
+    wire [31:0] cp0_pc_addr;
+    wire [31:0] cp0_status;
+    wire [31:0] cp0_epc;
+    wire cp0_interrupt;
+
+    assign _debug_cp0_status = cp0_status;
+    assign _debug_cp0_interrupt = cp0_interrupt;
+    assign _debug_cp0_pc_addr = cp0_pc_addr;
+    assign _debug_cp0_pc_jump = cp0_pc_jump;
 
     /* Arithmetic Logic Unit */
     //// VAR
@@ -103,15 +123,18 @@ module cpu_ex(
     assign alu_branch_result_realtime = alu_branch_result;
     wire [31:0] pc_abs_addr;
     assign pc_abs_addr =
+        (cp0_pc_jump == 1'b1) ? cp0_pc_addr :
         (controls[`CON_PC_JUMP] == `PC_JUMP_IMME) ? imme_extented :
         (controls[`CON_PC_JUMP] == `PC_JUMP_REG) ? reg_read1_data :
         32'h0;
     wire [31:0] pc_branch_addr;
     assign pc_branch_addr = imme_extented;
     wire [1:0] _pc_inc;
-    assign _pc_inc = 
-        (((controls[`CON_PC_INC] == `PC_INC_BRANCH) && (alu_branch_result == 1'b0)) ? `PC_INC_NORMAL :
-        controls[`CON_PC_INC]) | _syscall_pc_inc_mask;
+    assign _pc_inc = (
+        (cp0_pc_jump == 1'b1) ? `PC_INC_JUMP :
+        ((controls[`CON_PC_INC] == `PC_INC_BRANCH) && (alu_branch_result == 1'b0)) ? `PC_INC_NORMAL :
+        controls[`CON_PC_INC]
+        ) | _syscall_pc_inc_mask;
     assign pc_inc_realtime =
         (clr == 1'b1) ? 2'b00 :
         _pc_inc;
@@ -143,7 +166,7 @@ module cpu_ex(
         if(clr) begin
             _syscall_pc_inc_mask <= 2'b00;
         end
-        if(_syscall) begin
+        if(_syscall && !cp0_interrupt) begin
             if(_syscall_reg_v0 == 32'd10) begin
                 _syscall_pc_inc_mask <= `PC_INC_STOP_OR_MASK;
             end else begin
@@ -154,11 +177,14 @@ module cpu_ex(
     end
     /* !END TEMP Syscall Handle */
 
+    // Stage MEM Signal
+
     // Stage WB Signal
     wire _reg_write_en;
-    assign _reg_write_en = controls[`CON_REG_WRITE_EN];
+    assign _reg_write_en = controls[`CON_REG_WRITE_EN] & cp0_writeback_mask;
     wire [4:0] _reg_write_num;
     assign _reg_write_num =
+        (cp0_writeback_mask == 1'b0) ? 5'h00 : 
         (controls[`CON_REG_WRITE_EN] == `REG_WRITE_EN_F) ? 5'h00 :
         (controls[`CON_REG_WRITE_NUM] == `REG_WRITE_NUM_RT) ? ins[`INS_RAW_RT] :
         (controls[`CON_REG_WRITE_NUM] == `REG_WRITE_NUM_RD) ? ins[`INS_RAW_RD] :
@@ -173,6 +199,37 @@ module cpu_ex(
         (controls[`CON_REG_WRITE_DATA] == `REG_WRITE_DATA_PC) ? current_pc+1 :
         32'h0;
     assign con_reg_write_data_realtime = controls[`CON_REG_WRITE_DATA];
+    
+    /* Coprocessor 0 */
+    //// VAR
+    // INPUT
+    // in global: clk
+    // in global: cpu_clr
+    // in contorl: current_pc
+    // in global: hardware_interrupt
+    // in control: eret
+    // OUTPUT
+    // wire cp0_pc_jump;
+    // wire [31:0] cp0_pc_addr;
+    // wire cp0_writeback_mask; <- module output
+    // wire [31:0] cp0_status;
+    // wire [31:0] cp0_epc;
+    // wire cp0_interrupt;
+    //// MODULE
+    cp0 main_cp0(
+        .clk(clk),
+        .clk_delay(clk_delay),
+        .clr(clr),
+        .current_pc(current_pc),
+        .hardware_interrupt(hardware_interrupt),
+        .eret(eret),
+        .pc_jump(cp0_pc_jump),
+        .pc_addr(cp0_pc_addr),
+        .writeback_mask(cp0_writeback_mask),
+        .status(cp0_status),
+        .epc(cp0_epc),
+        .interrupt(cp0_interrupt)
+    );
     
     always_ff @(posedge clk) begin
         if(clr) begin

@@ -8,19 +8,22 @@
 
 module top(
     input clk,
+    input [2:0] hardware_interrupt,
     output [7:0] display_data,
     output [7:0] display_en
     );
 `ifndef _DEBUG_MODE_CPU
     /* Global */
     wire cpu_clk;
+    wire cpu_clk_delay;
     wire seg_clk;
     wire [31:0] cpu_display;
     wire [31:0] cpu_cycles;
     wire halt;
     clock #(1000000) clock_cpu_100hz(
         .clk(clk),
-        .clk_div(cpu_clk)
+        .clk_div(cpu_clk),
+        .clk_div_delay(cpu_clk_delay)
     );
 
     clock #(100000) clock_seg_display_1000hz(
@@ -50,7 +53,9 @@ module top(
     //// MODULE
     cpu main_cpu(
         .clk(cpu_clk),
+        .clk_delay(cpu_clk_delay),
         .clr(cpu_clr),
+        .hardware_interrupt({5'h00, hardware_interrupt}),
         .cycle_count(cpu_cycles),
         .display(cpu_display),
         .halt(halt)

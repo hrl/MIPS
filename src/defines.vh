@@ -19,6 +19,7 @@
 `define INS_RAW_IMME   15:0
 `define INS_RAW_ADDR   25:0
 `define INS_RAW_IMME_SIGN 15
+`define INS_RAW_CO     25:25
 
 // TYPE R
 // opcode == 6'b000000
@@ -60,8 +61,8 @@
 // match rs
 `define INS_C_MFC0    5'b00000
 `define INS_C_MTC0    5'b00100
-// eret here
-// ...
+// match {co, funct}
+`define INS_C_ERET    7'b1011000
 
 //// !END INSTRUCTION SET
 
@@ -99,7 +100,7 @@
 
 //// INS MEM
 `define PROGRAM_FILE "program.txt"
-`define EXCEPTION_FILE "program.txt"
+`define EXCEPTION_FILE "exception.txt"
 
 //// DATA MEM
 `define MEM_CS_DISABLE 1'b0
@@ -229,5 +230,10 @@
 `define HAZARD_REDIRECT_EX      2'b01
 `define HAZARD_REDIRECT_MEM     2'b10
 
+//// CP0
+// REG
+`define CP0_REG_STATUS_IM 15:8
+`define CP0_REG_STATUS_IE  0:0
+`define CP0_INT_BASE 32'h00008000
 
 `endif

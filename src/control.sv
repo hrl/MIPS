@@ -6,7 +6,8 @@
 module control(
     input [31:0] ins,
     //// parsed ins data
-    output [`CON_MSB:`CON_LSB] controls
+    output [`CON_MSB:`CON_LSB] controls,
+    output reg eret
     );
     reg [`CON_MSB:`CON_LSB] controls_reg;
     assign controls = controls_reg;
@@ -16,6 +17,7 @@ module control(
     always_comb begin
         // default STOP (MEM_RD_READ, MEM_CS_DISABLE, REG_WRITE_EN_F, PC_INC_STOP, *_X)
         controls_reg = {`MEM_RD_READ, `MEM_CS_DISABLE, `ALU_BRANCH_X, `ALU_B_X, `ALU_A_X, `ALU_OP_OR, `REG_READ2_NUM_X, `REG_READ2_EN_F, `REG_READ1_NUM_X, `REG_READ1_EN_F, `REG_WRITE_NUM_X, `REG_WRITE_DATA_X, `REG_WRITE_EN_F, `PC_JUMP_X, `PC_INC_STOP, `IMME_EXT_X};
+        eret = 1'b0;
         // parse ins
         if (ins[`INS_RAW_OPCODE] == 6'b000000) begin
             // TYPE R
@@ -41,8 +43,19 @@ module control(
                 // default STOP (MEM_RD_READ, MEM_CS_DISABLE, REG_WRITE_EN_F, PC_INC_STOP, *_X)
                 default:        controls_reg = {`MEM_RD_READ , `MEM_CS_DISABLE, `ALU_BRANCH_X  , `ALU_B_X    , `ALU_A_X  , `ALU_OP_X   , `REG_READ2_NUM_X , `REG_READ2_EN_F, `REG_READ1_NUM_X , `REG_READ1_EN_F, `REG_WRITE_NUM_X , `REG_WRITE_DATA_X  , `REG_WRITE_EN_F, `PC_JUMP_X   , `PC_INC_STOP  , `IMME_EXT_X   };
             endcase
+        end else if (ins[`INS_RAW_OPCODE] == 6'b010000) begin
+            // TYPE C
+            if({ins[`INS_RAW_CO], ins[`INS_RAW_FUNCT]} == `INS_C_ERET) begin
+                // ERET, use NOP (MEM_RD_READ, MEM_CS_DISABLE, REG_WRITE_EN_F, PC_INC_NORMAL, *_X)
+                controls_reg = {`MEM_RD_READ , `MEM_CS_DISABLE, `ALU_BRANCH_X  , `ALU_B_X    , `ALU_A_X  , `ALU_OP_X   , `REG_READ2_NUM_X , `REG_READ2_EN_F, `REG_READ1_NUM_X , `REG_READ1_EN_F, `REG_WRITE_NUM_X , `REG_WRITE_DATA_X  , `REG_WRITE_EN_F, `PC_JUMP_X   , `PC_INC_NORMAL, `IMME_EXT_X   };
+                eret = 1'b1;
+            end else begin
+                case (ins[`INS_RAW_RS])
+                    default:        controls_reg = {`MEM_RD_READ , `MEM_CS_DISABLE, `ALU_BRANCH_X  , `ALU_B_X    , `ALU_A_X  , `ALU_OP_X   , `REG_READ2_NUM_X , `REG_READ2_EN_F, `REG_READ1_NUM_X , `REG_READ1_EN_F, `REG_WRITE_NUM_X , `REG_WRITE_DATA_X  , `REG_WRITE_EN_F, `PC_JUMP_X   , `PC_INC_STOP  , `IMME_EXT_X   };
+                endcase
+            end
         end else begin
-            // TYPE I/J/C
+            // TYPE I/J
             case (ins[`INS_RAW_OPCODE])
                 // TYPE I
                 // diff:                                                                                                   |----------|                                                                                                                                                                  |------------|
@@ -61,10 +74,6 @@ module control(
                 // diff:                                                                                                                                                                                         |---------------|  |-----------------|  |-------------|
                 `INS_J_J:       controls_reg = {`MEM_RD_READ , `MEM_CS_DISABLE, `ALU_BRANCH_X  , `ALU_B_X    , `ALU_A_X  , `ALU_OP_X   , `REG_READ2_NUM_X , `REG_READ2_EN_F, `REG_READ1_NUM_X , `REG_READ1_EN_F, `REG_WRITE_NUM_X , `REG_WRITE_DATA_X  , `REG_WRITE_EN_F, `PC_JUMP_IMME, `PC_INC_JUMP  , `IMME_EXT_ZERO};
                 `INS_J_JAL:     controls_reg = {`MEM_RD_READ , `MEM_CS_DISABLE, `ALU_BRANCH_X  , `ALU_B_X    , `ALU_A_X  , `ALU_OP_X   , `REG_READ2_NUM_X , `REG_READ2_EN_F, `REG_READ1_NUM_X , `REG_READ1_EN_F, `REG_WRITE_NUM_31, `REG_WRITE_DATA_PC , `REG_WRITE_EN_T, `PC_JUMP_IMME, `PC_INC_JUMP  , `IMME_EXT_ZERO};
-                // TYPE C
-                // MFC0 here
-                // MTC0 here
-                // ERET here
                 // default STOP (MEM_RD_READ, MEM_CS_DISABLE, REG_WRITE_EN_F, PC_INC_STOP, *_X)
                 default:        controls_reg = {`MEM_RD_READ , `MEM_CS_DISABLE, `ALU_BRANCH_X  , `ALU_B_X    , `ALU_A_X  , `ALU_OP_X   , `REG_READ2_NUM_X , `REG_READ2_EN_F, `REG_READ1_NUM_X , `REG_READ1_EN_F, `REG_WRITE_NUM_X , `REG_WRITE_DATA_X  , `REG_WRITE_EN_F, `PC_JUMP_X   , `PC_INC_STOP  , `IMME_EXT_X   };
             endcase

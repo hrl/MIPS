@@ -19,7 +19,9 @@
 module cpu(
     `ifndef _DEBUG_MODE_CPU
     input clk,
+    input clk_delay,
     input clr,
+    input [7:0] hardware_interrupt,
     `endif
     output [31:0] cycle_count,
     output [31:0] display,
@@ -50,6 +52,7 @@ module cpu(
     wire [31:0] current_pc_id;
     wire [31:0] ins_id;
     wire [`CON_MSB:`CON_LSB] controls_id;
+    wire eret_id;
     wire [31:0] reg_read1_data_id;
     wire [31:0] reg_read2_data_id;
     // Stage EX->MEM
@@ -59,6 +62,7 @@ module cpu(
     wire [31:0] reg_read2_data_ex;
     wire [31:0] alu_result_ex;
     wire  alu_zero_ex;
+    wire cp0_writeback_mask_ex;
     wire [31:0] next_pc_realtime_ex;
     wire [1:0] pc_inc_realtime_ex;
     wire reg_write_en_ex;
@@ -79,14 +83,28 @@ module cpu(
 
     /* Debug Sim */
     `ifdef _DEBUG_MODE_CPU
-        reg clk;
+        reg [1:0] counter;
+        reg clk = 0;
+        reg clk_delay = 0;
         reg clr;
-        always #5 clk = ~clk;
+        reg [7:0] hardware_interrupt;
+        always #1 counter = counter + 1;
+        always_ff @(posedge counter[0] iff counter[1] == 1'b0) begin
+            clk = ~clk;
+        end
+        always_ff @(posedge counter[1]) begin
+            clk_delay = ~clk_delay;
+        end
         initial begin
-            clk = 0;
+            counter = 2'h0;
             clr = 1;
+            hardware_interrupt = 8'h00;
             #10;
             clr = 0;
+            #1000;
+            hardware_interrupt[0] = 1'b1;
+            #100;
+            hardware_interrupt[0] = 1'b0;
         end
         always_ff @(posedge clk iff halt) begin
             $display("HALT, cycle_count: %d", cycle_count-1);
@@ -186,6 +204,7 @@ module cpu(
     // wire [31:0] current_pc_id;
     // wire [31:0] ins_id;
     // wire [`CON_MSB:`CON_LSB] controls_id;
+    // wire eret_id;
     // wire [31:0] reg_read1_data_id;
     // wire [31:0] reg_read2_data_id;
     // wire [4:0] reg_read1_num_realtime_id
@@ -203,6 +222,7 @@ module cpu(
         .current_pc_id(current_pc_id),
         .ins_id(ins_id),
         .controls(controls_id),
+        .eret(eret_id),
         .reg_read1_data(reg_read1_data_id),
         .reg_read2_data(reg_read2_data_id),
         .reg_read1_num_realtime(reg_read1_num_realtime_id),
@@ -239,13 +259,20 @@ module cpu(
     // wire [31:0] _syscall_display_ex;
     wire _debug_syscall;
     wire [1:0] _debug_syscall_pc_inc_mask;
+    wire _debug_cp0_pc_jump;
+    wire [31:0] _debug_cp0_pc_addr;
+    wire _debug_cp0_interrupt;
+    wire [31:0] _debug_cp0_status;
     //// MODULE
     cpu_ex stage_ex(
         .clk(clk),
+        .clk_delay(clk_delay),
         .clr(clr),
+        .hardware_interrupt(hardware_interrupt),
         .current_pc(current_pc_id),
         .ins(ins_id),
         .controls(controls_id),
+        .eret(eret_id),
         .reg_read1_data(reg_read1_data_id),
         .reg_read2_data(reg_read2_data_id),
         // latch signal
@@ -256,6 +283,7 @@ module cpu(
         // stage EX output
         .alu_result(alu_result_ex),
         .alu_zero(alu_zero_ex),
+        .cp0_writeback_mask(cp0_writeback_mask_ex),
         // pc change signal
         .next_pc_realtime(next_pc_realtime_ex),
         .pc_inc_realtime(pc_inc_realtime_ex),
@@ -273,7 +301,11 @@ module cpu(
         ._syscall_display(_syscall_display_ex),
         // debug signal
         ._debug_syscall(_debug_syscall),
-        ._debug_syscall_pc_inc_mask(_debug_syscall_pc_inc_mask)
+        ._debug_syscall_pc_inc_mask(_debug_syscall_pc_inc_mask),
+        ._debug_cp0_pc_jump(_debug_cp0_pc_jump),
+        ._debug_cp0_pc_addr(_debug_cp0_pc_addr),
+        ._debug_cp0_status(_debug_cp0_status),
+        ._debug_cp0_interrupt(_debug_cp0_interrupt)
     );
 
     /* Stage MEM */
@@ -298,8 +330,8 @@ module cpu(
     cpu_mem stage_mem(
         .clk(clk),
         .clr(clr),
+        .cp0_writeback_mask(cp0_writeback_mask_ex),
         .current_pc(current_pc_ex),
-        .ins(ins_ex),
         .controls(controls_ex),
         .reg_read2_data(reg_read2_data_ex),
         .alu_result(alu_result_ex),

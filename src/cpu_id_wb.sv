@@ -19,6 +19,7 @@ module cpu_id_wb(
     output reg [31:0] current_pc_id, // latch
     output reg [31:0] ins_id, // latch
     output reg [`CON_MSB:`CON_LSB] controls,
+    output reg eret,
     output reg [31:0] reg_read1_data,
     output reg [31:0] reg_read2_data,
     output [4:0] reg_read1_num_realtime,
@@ -30,10 +31,12 @@ module cpu_id_wb(
     // in im: ins
     // OUTPUT
     wire [`CON_MSB:`CON_LSB] _controls;
+    wire _eret;
     //// MODULE
     control main_control(
         .ins(ins),
-        .controls(_controls)
+        .controls(_controls),
+        .eret(_eret)
     );
 
     /* Register File */
@@ -74,6 +77,7 @@ module cpu_id_wb(
     always_ff @(posedge clk) begin
         if(clr) begin
             controls <= `CON_NOP;
+            eret <= 1'b0;
             reg_read1_data <= 32'h00000000;
             reg_read2_data <= 32'h00000000;
             current_pc_id <= 32'h00000000;
@@ -81,11 +85,13 @@ module cpu_id_wb(
         end else begin
             if(stall == 1'b1) begin
                 controls <= `CON_NOP;
+                eret <= 1'b0;
                 reg_read1_data <= 32'h00000000;
                 reg_read2_data <= 32'h00000000;
                 ins_id <= 32'h00000000; // NOP (sll $0, $0, $0)
             end else begin
                 controls <= _controls;
+                eret <= _eret;
                 reg_read1_data <= _reg_read1_data;
                 reg_read2_data <= _reg_read2_data;
                 ins_id <= ins;

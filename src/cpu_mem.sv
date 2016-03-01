@@ -10,7 +10,7 @@ module cpu_mem(
     input clk, // from global
     input clr, // from global
     input [31:0] current_pc, // from EX
-    input [31:0] ins, // from EX
+    input cp0_writeback_mask, // from EX
     input [`CON_MSB:`CON_LSB] controls, // from EX
     input [31:0] reg_read2_data, // from EX
     input [31:0] alu_result, // from EX
@@ -36,7 +36,7 @@ module cpu_mem(
     //// module
     ram data_memory(
         .addr(dm_addr),
-        .cs(controls[`CON_MEM_CS]),
+        .cs(controls[`CON_MEM_CS] & cp0_writeback_mask),
         .rd(controls[`CON_MEM_RD]),
         .oe(controls[`CON_MEM_RD]), // same as rd
         .clk(clk),
