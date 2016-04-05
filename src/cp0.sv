@@ -33,15 +33,15 @@
 *     push current_pc to epc stack
 *     block write back
 *     set pc jump flag
-*     // 1)  highest-level interrupt at edge 1 will be masked,
-*     //     pc will jump to interrupt_program[temp] at egde 3,
-*     // 2a) if no other higher-lever interrupt happens between edge 1 and 3,
-*     //     interrupt flag will be set to false at edge 3.
-*     // 2b) if higher-lever interrupt happens between edge 1 and 3,
-*     //     highest-level interrupt at edge 3 will be handled as in 1),
-*     //     at this situation, interrupt flag will keep true between edge 3 and 5,
-*     //                        current_pc will be pushed at edge 4,
-*     //                        pc will jump to another address at edge 5.
+*     // 1)  highest-level interrupt at edge 0 will be masked,
+*     //     pc will jump to interrupt_program[temp] at egde a,
+*     // 2a) if no other higher-lever interrupt happens between edge 0 and a,
+*     //     interrupt flag will be set to false at edge 2.
+*     // 2b) if higher-lever interrupt happens between edge 0 and a,
+*     //     highest-level interrupt at edge 2 will be handled as in 1),
+*     //     at this situation, interrupt flag will keep true between edge 2 and 4,
+*     //                        current_pc will be pushed at edge c,
+*     //                        pc will jump to another address at edge 4.
 *     // 3)  treat ERET as J when pushing next_pc
 * situation 2a:
 * /2: pc <- interrupt_program[temp]
@@ -58,9 +58,9 @@
 *     temp <- pop epc stack
 *     set pc jump flag
 *     // if other same-or-lower-level interrupt exists,
-*     // interrupt check will happen at egde 3,
-*     // current_pc will be pushed at edge 4,
-*     // pc will jump to another address at edge 5.
+*     // interrupt check will happen at egde 2,
+*     // current_pc will be pushed at edge c,
+*     // pc will jump to another address at edge 4.
 * /2: pc <- temp
 * /c: clean pc jump flag
 *
@@ -138,7 +138,7 @@ module cp0(
         end
     end
 
-    reg [2:0] _epc_stack_count = 3'h0; // get updated at negedge clk, shared with mask_stack
+    reg [2:0] _epc_stack_count = 3'h0; // get updated at posedge clk, shared with mask_stack
     reg [2:0] _epc_stack_count_new = 3'h0;
     reg [7:0] interrupt_mask = 8'b11111111;
     reg [7:0] interrupt_num = 3'h0;
@@ -183,7 +183,7 @@ module cp0(
                     pc_addr <= `CP0_INT_BASE + interrupt_num;
                     // block write back
                     writeback_mask <= 1'b0;
-                    end
+                end
                 2'b01: begin
                     // leave interrupt
                     // pop pc, pop mask then unmask
