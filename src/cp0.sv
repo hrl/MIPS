@@ -42,7 +42,6 @@
 *     //     at this situation, interrupt flag will keep true between edge 2 and 4,
 *     //                        current_pc will be pushed at edge c,
 *     //                        pc will jump to another address at edge 4.
-*     // 3)  treat ERET as J when pushing next_pc
 * situation 2a:
 * /2: pc <- interrupt_program[temp]
 * /c: clean pc jump flag
